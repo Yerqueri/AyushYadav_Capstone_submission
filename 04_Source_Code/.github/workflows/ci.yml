@@ -1,0 +1,36 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Install GuardrailsAI validators
+        run: |
+          guardrails hub install hub://guardrails/detect_jailbreak
+          guardrails hub install hub://guardrails/detect_prompt_injection
+          guardrails hub install hub://guardrails/detect_system_prompt_leakage
+          guardrails hub install hub://guardrails/extracted_summary_sentences_match
+          guardrails hub install hub://guardrails/bert_toxic
+          guardrails hub install hub://guardrails/guardrails_pii
+        env:
+          GUARDRAILS_API_KEY: ${{ secrets.GUARDRAILS_API_KEY }}
+
+      - name: Run tests
+        run: python -m pytest tests/ -v
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GUARDRAILS_API_KEY: ${{ secrets.GUARDRAILS_API_KEY }}
+          DATABASE_URL: "sqlite:///./storage/decisions.db"

@@ -1,0 +1,17 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"   # FastAPI
+      - "8001:8001"   # Prometheus metrics
+    env_file:
+      - .env
+    volumes:
+      - ./storage:/app/storage   # persist SQLite decision log across restarts
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s   # allow time for validator install + ChromaDB build

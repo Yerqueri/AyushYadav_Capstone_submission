@@ -10,6 +10,7 @@ sqlalchemy==2.0.29
 prometheus-client==0.19.0
 pydantic==2.5.3
 guardrails-ai==0.5.15
+litellm==1.53.3
 guardrails-ai-bert-toxic==0.1.0
 guardrails-ai-detect-jailbreak==0.1.6
 guardrails-ai-detect-prompt-injection==0.1.0

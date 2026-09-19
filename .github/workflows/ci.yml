@@ -10,6 +10,9 @@ jobs:
   test-and-coverage:
     name: Run Unit Tests & Verify Coverage (≥ 90%)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 04_Source_Code
     env:
       OPENAI_API_KEY: "test-mock-key"
       DATABASE_URL: "sqlite:///./storage/decisions.db"

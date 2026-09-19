@@ -32,7 +32,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           guardrails hub install hub://guardrails/detect_jailbreak --quiet || true
-          guardrails hub install hub://guardrails/detect_prompt_injection --quiet || true
           guardrails hub install hub://guardrails/detect_system_prompt_leakage --quiet || true
           guardrails hub install hub://guardrails/extracted_summary_sentences_match --quiet || true
           guardrails hub install hub://guardrails/bert_toxic --quiet || true

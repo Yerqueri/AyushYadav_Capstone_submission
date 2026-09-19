@@ -13,7 +13,6 @@ guardrails-ai==0.5.15
 litellm==1.53.3
 guardrails-ai-bert-toxic==0.1.0
 guardrails-ai-detect-jailbreak==0.1.6
-guardrails-ai-detect-prompt-injection==0.1.0
 guardrails-ai-detect-system-prompt-leakage==0.1.0
 guardrails-ai-extracted-summary-sentences-match==0.1.0
 guardrails-ai-guardrails-pii==1.0.8

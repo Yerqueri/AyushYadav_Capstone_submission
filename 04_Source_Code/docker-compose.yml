@@ -36,8 +36,8 @@ services:
       - .env
     environment:
       - MODE=batch
-      - BATCH_INPUT=${BATCH_INPUT:-data/development_tickets.json}
-      - BATCH_OUTPUT=${BATCH_OUTPUT:-storage/}
+      - INPUT_PATH=${INPUT_PATH:-${BATCH_INPUT:-data/development_tickets.json}}
+      - OUTPUT_PATH=${OUTPUT_PATH:-${BATCH_OUTPUT:-storage/results}}
       - BATCH_CONCURRENCY=${BATCH_CONCURRENCY:-4}
       - BATCH_SAMPLE=${BATCH_SAMPLE:-}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
@@ -63,8 +63,8 @@ services:
       - .env
     environment:
       - MODE=both
-      - BATCH_INPUT=${BATCH_INPUT:-data/development_tickets.json}
-      - BATCH_OUTPUT=${BATCH_OUTPUT:-storage/}
+      - INPUT_PATH=${INPUT_PATH:-${BATCH_INPUT:-data/development_tickets.json}}
+      - OUTPUT_PATH=${OUTPUT_PATH:-${BATCH_OUTPUT:-storage/results}}
       - BATCH_CONCURRENCY=${BATCH_CONCURRENCY:-4}
     volumes:
       - ./storage:/app/storage

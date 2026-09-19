@@ -160,10 +160,10 @@ Execute the batch evaluation harness over a dataset file in one shot:
 
 ```bash
 # Run full 500-ticket development dataset batch triage
-python -m evaluation.harness --input data/development_tickets.json --output storage/
+python -m evaluation.harness --input data/validation_tickets.json --output storage/results/
 
 # Run a quick 20-ticket smoke test batch triage
-python -m evaluation.harness --input data/development_tickets.json --output storage/ --sample 20
+python -m evaluation.harness --input data/validation_tickets.json --output storage/results/ --sample 20
 ```
 
 **Batch Run Artifacts Produced:**
@@ -235,23 +235,34 @@ docker run -d \
 
 #### C. Mode 2: Run One-Shot Batch Processing Container Standalone
 
-```bash
-# Full 500-ticket one-shot batch run
-docker run --rm \
-  --name cloudserve-batch-run \
-  --env-file .env \
-  -e MODE=batch \
-  -v $(pwd)/storage:/app/storage \
-  cloudserve-triage:latest
+You can pass input and output paths to the Docker container via CLI flags (`--input` / `-i`, `--output` / `-o`) or environment variables (`INPUT_PATH`, `OUTPUT_PATH`):
 
-# 20-ticket smoke test batch run
+```bash
+# Option 1: Direct flag pattern (consistent with native harness CLI)
 docker run --rm \
-  --name cloudserve-batch-smoke \
+  --name cloudserve-batch-flags \
   --env-file .env \
-  -e MODE=batch \
-  -e BATCH_SAMPLE=20 \
+  -v $(pwd)/data:/app/data \
   -v $(pwd)/storage:/app/storage \
-  cloudserve-triage:latest
+  cloudserve-triage:latest --input data/validation_tickets.json --output storage/results --sample 20
+
+# Option 2: Short flag pattern (-i / -o)
+docker run --rm \
+  --name cloudserve-batch-short-flags \
+  --env-file .env \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/storage:/app/storage \
+  cloudserve-triage:latest -i data/validation_tickets.json -o storage/results
+
+# Option 3: Environment variable pattern
+docker run --rm \
+  --name cloudserve-batch-env \
+  --env-file .env \
+  -e INPUT_PATH=data/validation_tickets.json \
+  -e OUTPUT_PATH=storage/results \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/storage:/app/storage \
+  cloudserve-triage:latest batch
 ```
 
 #### D. Mode 3: Run API Server AND One-Shot Batch Simultaneously in Single Container

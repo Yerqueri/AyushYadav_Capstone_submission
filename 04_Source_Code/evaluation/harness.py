@@ -189,11 +189,11 @@ def main() -> None:
         description="CloudServe Support Triage — end-to-end batch harness",
     )
     parser.add_argument(
-        "--input", required=True,
+        "--input", "-i", required=True,
         help="Path to input JSON file (array of ticket objects)",
     )
     parser.add_argument(
-        "--output", required=True,
+        "--output", "-o", required=True,
         help="Directory where run JSONL and metrics JSON are written",
     )
     parser.add_argument(

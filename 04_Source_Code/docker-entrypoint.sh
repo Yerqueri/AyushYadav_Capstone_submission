@@ -18,33 +18,74 @@ else
     echo "[Entrypoint] GUARDRAILS_API_KEY not set — validators running in pass-through mode."
 fi
 
-# Determine Execution Mode (default: MODE=api)
+# Default environment settings
 EXEC_MODE="${MODE:-api}"
+INPUT_PATH="${INPUT_PATH:-${BATCH_INPUT:-${INPUT:-data/development_tickets.json}}}"
+OUTPUT_PATH="${OUTPUT_PATH:-${BATCH_OUTPUT:-${OUTPUT:-storage/results}}}"
+CONCURRENCY_VAL="${BATCH_CONCURRENCY:-4}"
+SAMPLE_VAL="${BATCH_SAMPLE:-}"
 
-# Support custom command override (if $1 starts with something other than api/batch/both/all)
-if [ "$#" -gt 0 ] && [ "$1" != "api" ] && [ "$1" != "batch" ] && [ "$1" != "both" ] && [ "$1" != "all" ]; then
-    echo "[Entrypoint] Executing custom command: $@"
-    exec "$@"
+# Parse CLI arguments if provided
+CLI_INPUT=""
+CLI_OUTPUT=""
+CLI_SAMPLE=""
+CLI_CONCURRENCY=""
+
+POSITIONAL=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        api|batch|both|all)
+            EXEC_MODE="$1"
+            shift
+            ;;
+        --input|-i)
+            CLI_INPUT="$2"
+            EXEC_MODE="batch"
+            shift 2
+            ;;
+        --output|-o)
+            CLI_OUTPUT="$2"
+            EXEC_MODE="batch"
+            shift 2
+            ;;
+        --sample|-s)
+            CLI_SAMPLE="$2"
+            EXEC_MODE="batch"
+            shift 2
+            ;;
+        --concurrency|-c)
+            CLI_CONCURRENCY="$2"
+            EXEC_MODE="batch"
+            shift 2
+            ;;
+        *)
+            POSITIONAL+=("$1")
+            shift
+            ;;
+    esac
+done
+
+# Apply CLI flag overrides if present
+if [ -n "$CLI_INPUT" ]; then INPUT_PATH="$CLI_INPUT"; fi
+if [ -n "$CLI_OUTPUT" ]; then OUTPUT_PATH="$CLI_OUTPUT"; fi
+if [ -n "$CLI_SAMPLE" ]; then SAMPLE_VAL="$CLI_SAMPLE"; fi
+if [ -n "$CLI_CONCURRENCY" ]; then CONCURRENCY_VAL="$CLI_CONCURRENCY"; fi
+
+# If positional arguments represent a custom command (e.g. python -m ..., pytest, bash), execute it
+if [ ${#POSITIONAL[@]} -gt 0 ] && [[ "${POSITIONAL[0]}" != -* ]]; then
+    echo "[Entrypoint] Executing custom command: ${POSITIONAL[*]}"
+    exec "${POSITIONAL[@]}"
 fi
-
-# Override MODE if $1 was passed explicitly as api/batch/both
-if [ "$1" = "api" ] || [ "$1" = "batch" ] || [ "$1" = "both" ] || [ "$1" = "all" ]; then
-    EXEC_MODE="$1"
-fi
-
-BATCH_INPUT_PATH="${BATCH_INPUT:-data/development_tickets.json}"
-BATCH_OUTPUT_PATH="${BATCH_OUTPUT:-storage/}"
-BATCH_CONCURRENCY_VAL="${BATCH_CONCURRENCY:-4}"
 
 # Helper function to run batch triage harness
 run_batch_job() {
-    echo "[Entrypoint] Starting one-shot batch triage run..."
-    echo "[Entrypoint] Input: ${BATCH_INPUT_PATH} | Output: ${BATCH_OUTPUT_PATH} | Concurrency: ${BATCH_CONCURRENCY_VAL}"
+    echo "[Entrypoint] Starting batch triage run..."
+    echo "[Entrypoint] Input: ${INPUT_PATH} | Output: ${OUTPUT_PATH} | Concurrency: ${CONCURRENCY_VAL}"
     
-    CMD="python -m evaluation.harness --input ${BATCH_INPUT_PATH} --output ${BATCH_OUTPUT_PATH} --concurrency ${BATCH_CONCURRENCY_VAL}"
-    if [ -n "$BATCH_SAMPLE" ]; then
-        CMD="$CMD --sample ${BATCH_SAMPLE}"
-        echo "[Entrypoint] Sampling first ${BATCH_SAMPLE} tickets."
+    CMD="python -m evaluation.harness --input ${INPUT_PATH} --output ${OUTPUT_PATH} --concurrency ${CONCURRENCY_VAL}"
+    if [ -n "$SAMPLE_VAL" ]; then
+        CMD="$CMD --sample ${SAMPLE_VAL}"
+        echo "[Entrypoint] Sampling first ${SAMPLE_VAL} tickets."
     fi
     
     eval $CMD
@@ -58,7 +99,7 @@ case "$EXEC_MODE" in
         exit 0
         ;;
     both|all)
-        echo "[Entrypoint] Mode: BOTH (API Server + One-Shot Batch simultaneously)"
+        echo "[Entrypoint] Mode: BOTH (API Server + Batch simultaneously)"
         echo "[Entrypoint] Launching FastAPI server on port 8000 in background..."
         uvicorn src.api:app --host 0.0.0.0 --port 8000 &
         API_PID=$!

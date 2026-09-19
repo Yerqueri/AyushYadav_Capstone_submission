@@ -3,7 +3,7 @@
 **Prompt ID:** PR-05  
 **Version:** 1.0  
 **Purpose:** Draft a complete, accurate customer response using only the documents identified as relevant by the RAG agent. All claims must be attributed to source documents. If the documents do not fully cover the question, the draft must say so explicitly rather than inventing details.  
-**Model target:** `google/gemini-3.1-flash-lite` (OpenRouter)  
+**Model target:** `gpt-4o-mini` (OpenAI)  
 **Evaluation dataset:** `ground_truth_responses.json` (200 tickets with reference responses, must_mention, and must_not_claim fields)
 
 ---

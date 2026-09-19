@@ -3,7 +3,7 @@
 **Prompt ID:** PR-02  
 **Version:** 1.0  
 **Purpose:** Detect whether a support ticket was written by a fluent or non-fluent English speaker. Used upstream of intent classification to flag tickets that may need interpretation before automated routing.  
-**Model target:** `google/gemini-3.1-flash-lite` (OpenRouter)  
+**Model target:** `gpt-4o-mini` (OpenAI)  
 **Evaluation dataset:** `development_tickets.json` (500 tickets — 380 fluent, 120 non-fluent)
 
 ---

@@ -3,7 +3,7 @@
 **Prompt ID:** PR-03  
 **Version:** 3.5  
 **Purpose:** Classify the urgency of a support ticket as `high`, `medium`, or `low`. Used to prioritise queue routing and SLA assignment. Runs after intent classification.  
-**Model target:** `google/gemini-3.1-flash-lite` (OpenRouter)  
+**Model target:** `gpt-4o-mini` (OpenAI)  
 **Evaluation dataset:** `development_tickets.json` (500 tickets — 146 high, 226 medium, 128 low)
 
 ---

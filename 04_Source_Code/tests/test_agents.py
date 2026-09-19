@@ -172,3 +172,88 @@ def test_run_draft_for_human_review():
         )
     assert result["draft"] is not None
     assert "billing query" in result["draft"]
+
+
+# ── _llm.py & run_rag ─────────────────────────────────────────────────────────
+
+def test_get_client_missing_key(monkeypatch):
+    from src.agents import _llm
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setattr(_llm, "_client", None)
+
+    with pytest.raises(RuntimeError, match="OPENAI_API_KEY is not set"):
+        _llm.get_client()
+
+
+def test_call_llm_retry_and_success():
+    from src.agents._llm import call_llm
+
+    msg = MagicMock()
+    msg.content = "success text"
+    resp = MagicMock()
+    resp.choices = [MagicMock(message=msg)]
+
+    client = MagicMock()
+    # First call fails, second succeeds
+    client.chat.completions.create.side_effect = [Exception("rate limit"), resp]
+
+    with patch("time.sleep"):
+        res = call_llm(client, "system prompt", "user prompt", max_retries=2)
+
+    assert res == "success text"
+    assert client.chat.completions.create.call_count == 2
+
+
+def test_call_llm_all_retries_fail():
+    from src.agents._llm import call_llm
+
+    client = MagicMock()
+    client.chat.completions.create.side_effect = Exception("network error")
+
+    with patch("time.sleep"):
+        with pytest.raises(Exception, match="network error"):
+            call_llm(client, "sys", "user", max_retries=2)
+
+
+def test_parse_json_output_errors():
+    from src.agents._llm import parse_json_output
+
+    with pytest.raises(ValueError, match="No JSON object found"):
+        parse_json_output("no json here")
+
+    with pytest.raises(ValueError, match="Incomplete JSON object"):
+        parse_json_output('{"unclosed": "object"')
+
+
+def test_run_rag_agent():
+    from src.agents.rag import run_rag
+
+    payload = json.dumps({
+        "relevant_doc_ids": ["DOC-1"],
+        "answerable": True,
+        "confidence": 85,
+        "reasoning_summary": "Doc matches",
+    })
+    client = _mock_client(payload)
+
+    mock_doc = {
+        "doc_id": "DOC-1",
+        "title": "Deployment Guide",
+        "content": "Steps to fix build dependency issues...",
+        "related_docs": [],
+    }
+
+    with patch("src.agents.rag.retrieve", return_value=[mock_doc]):
+        res = run_rag({
+            "ticket_id": "T-10",
+            "intent": "deployment_failure",
+            "urgency": "high",
+            "subject": "Build broken",
+            "body": "dependency issue",
+        }, client)
+
+    assert res["relevant_doc_ids"] == ["DOC-1"]
+    assert res["answerable"] is True
+
+
+

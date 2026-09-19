@@ -45,6 +45,20 @@ def triage_ticket(raw: dict) -> TriageResponse:
     return response
 
 
+@app.post("/tickets/batch", response_model=list[TriageResponse])
+def triage_tickets_batch(raw_tickets: list[dict]) -> list[TriageResponse]:
+    """Classify, retrieve, and draft (or escalate) a batch of support tickets synchronously."""
+    responses = []
+    for raw in raw_tickets:
+        ticket = normalize_ticket(raw)
+        with PIPELINE_LATENCY.time():
+            res = run_pipeline(ticket)
+        TICKETS_TOTAL.labels(channel=ticket.channel, route=res.route).inc()
+        responses.append(res)
+    return responses
+
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}

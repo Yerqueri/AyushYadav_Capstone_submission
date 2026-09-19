@@ -1,36 +1,44 @@
-name: CI
+name: CI Pipeline
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  test:
+  test-and-coverage:
+    name: Run Unit Tests & Verify Coverage (≥ 90%)
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    env:
+      OPENROUTER_API_KEY: "test-mock-key"
+      DATABASE_URL: "sqlite:///./storage/decisions.db"
 
-      - uses: actions/setup-python@v5
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
 
-      - name: Install dependencies
+      - name: Install Python Dependencies & Guardrails Hub Validators
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          pip install -r requirements.txt
+          guardrails hub install hub://guardrails/detect_jailbreak --quiet || true
+          guardrails hub install hub://guardrails/detect_prompt_injection --quiet || true
+          guardrails hub install hub://guardrails/detect_system_prompt_leakage --quiet || true
+          guardrails hub install hub://guardrails/extracted_summary_sentences_match --quiet || true
+          guardrails hub install hub://guardrails/bert_toxic --quiet || true
+          guardrails hub install hub://guardrails/guardrails_pii --quiet || true
 
-      - name: Install GuardrailsAI validators
+      - name: Run Pytest Suite with Coverage Gate (≥ 90%)
         run: |
-          guardrails hub install hub://guardrails/detect_jailbreak
-          guardrails hub install hub://guardrails/detect_prompt_injection
-          guardrails hub install hub://guardrails/detect_system_prompt_leakage
-          guardrails hub install hub://guardrails/extracted_summary_sentences_match
-          guardrails hub install hub://guardrails/bert_toxic
-          guardrails hub install hub://guardrails/guardrails_pii
-        env:
-          GUARDRAILS_API_KEY: ${{ secrets.GUARDRAILS_API_KEY }}
+          pytest --cov=src --cov-report=term-missing --cov-fail-under=90 --cov-report=xml tests/
 
-      - name: Run tests
-        run: python -m pytest tests/ -v
-        env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          GUARDRAILS_API_KEY: ${{ secrets.GUARDRAILS_API_KEY }}
-          DATABASE_URL: "sqlite:///./storage/decisions.db"
+      - name: Verify Docker Container Build
+        run: |
+          docker build -t cloudserve-triage:ci .

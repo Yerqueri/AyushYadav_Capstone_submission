@@ -42,7 +42,7 @@ try:
 except ImportError:
     pass
 
-# ── OpenAI-compatible client (OpenRouter) ──────────────────────────────────────
+# ── OpenAI-compatible client (OpenAI) ──────────────────────────────────────
 try:
     from openai import OpenAI
 except ImportError:

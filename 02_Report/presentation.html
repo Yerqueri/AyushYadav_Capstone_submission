@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autonomous AI Support System — Discovery, PRD, Architecture & Operational Impact Deck</title>
+<style>
+  :root{
+    --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc;
+    --navy:#091e36; --teal:#0f766e; --green:#16a34a; --orange:#f59e0b;
+    --red:#dc2626; --purple:#7c3aed; --white:#ffffff; --soft:#eef6f5;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background:var(--bg); color:var(--ink); overflow:hidden;
+  }
+  .deck{
+    height:100%; display:flex; flex-direction:column;
+  }
+  .topbar{
+    height:58px; flex:0 0 58px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 28px; border-bottom:1px solid var(--line); background:rgba(255,255,255,.95);
+    position:relative; z-index:5; backdrop-filter:blur(10px);
+  }
+  .brand{font-size:13px; font-weight:750; letter-spacing:.04em; text-transform:uppercase; color:var(--muted)}
+  .brand span{color:var(--teal); font-weight:850}
+  .hint{font-size:12px; color:var(--muted)}
+  .track{
+    flex:1; display:flex; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory;
+    scroll-behavior:smooth; scrollbar-width:none;
+  }
+  .track::-webkit-scrollbar{display:none}
+  .slide{
+    flex:0 0 100vw; width:100vw; height:calc(100vh - 58px); scroll-snap-align:start;
+    padding:36px 6vw 34px; display:flex; flex-direction:column; justify-content:center;
+    position:relative; overflow:hidden;
+  }
+  .slide.dark{background:var(--navy); color:#fff}
+  .slide.soft{background:#f1f7f6}
+  .slide.purple-dark{background:#1e1b4b; color:#fff}
+  .eyebrow{font-size:12px; text-transform:uppercase; letter-spacing:.16em; font-weight:800; color:var(--teal); margin-bottom:8px}
+  .dark .eyebrow, .purple-dark .eyebrow{color:#6ee7d3}
+  h1{font-size:clamp(32px,4.8vw,72px); line-height:.96; letter-spacing:-.045em; margin:0 0 12px; max-width:1150px}
+  h2{font-size:clamp(22px,3.2vw,42px); line-height:1.04; letter-spacing:-.035em; margin:0 0 8px; max-width:1080px}
+  h3{font-size:15px; margin:0 0 4px; line-height:1.2; font-weight:750}
+  p{font-size:13.5px; line-height:1.5; margin:0; max-width:950px}
+  .sub{color:var(--muted)}
+  .dark .sub, .purple-dark .sub{color:#cbd5e1}
+  .source{position:absolute; left:6vw; bottom:10px; font-size:11px; color:#94a3b8; letter-spacing:.02em}
+  .dark .source, .purple-dark .source{color:#94a3b8}
+  .accent{color:var(--teal)}
+  .dark .accent{color:#6ee7d3}
+  .kicker{display:inline-flex; align-items:center; gap:8px; padding:3px 9px; border-radius:999px; background:#e6fffa; color:#115e59; font-size:11px; font-weight:800}
+  .dark .kicker{background:rgba(110,231,211,.12); color:#99f6e4}
+  .grid{display:grid; gap:12px}
+  .g5{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .card{
+    background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px;
+    box-shadow:0 6px 16px rgba(15,23,42,.03); transition:transform .2s ease;
+  }
+  .card:hover{transform:translateY(-2px)}
+  .dark .card, .purple-dark .card{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);box-shadow:none}
+  .card.highlight{background:linear-gradient(135deg, #0f766e, #047857); color:#fff; border:none}
+  .card.highlight .label{color:#ccfbf1}
+  .card.highlight .mini-note{color:#e6fffa}
+  .metric{font-size:32px; font-weight:850; letter-spacing:-.04em; line-height:1}
+  .metric.small{font-size:22px}
+  .label{font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-top:5px; font-weight:750}
+  .dark .label, .purple-dark .label{color:#cbd5e1}
+  .delta{font-size:11.5px; color:var(--green); font-weight:800; margin-top:5px}
+  .dark .delta, .purple-dark .delta{color:#86efac}
+  .compare{
+    display:flex; align-items:flex-end; gap:12px; height:120px; padding-top:6px;
+  }
+  .barwrap{flex:1; display:flex; flex-direction:column; gap:4px; justify-content:flex-end}
+  .bar{border-radius:6px 6px 3px 3px; min-height:8px}
+  .bar.gray{background:#cbd5e1}
+  .bar.teal{background:#0f766e}
+  .bar.green{background:#16a34a}
+  .bar.purple{background:#7c3aed}
+  .bar.orange{background:#f59e0b}
+  .barval{font-size:11.5px; font-weight:850; text-align:center}
+  .barlabel{font-size:9.5px; color:var(--muted); text-align:center; line-height:1.2}
+  .flow{display:flex; align-items:stretch; gap:10px; margin-top:14px}
+  .flowbox{
+    flex:1; min-height:100px; border-radius:14px; padding:12px; background:#fff;
+    border:1px solid var(--line); display:flex; flex-direction:column; justify-content:center;
+  }
+  .flowbox.teal{background:#e8f8f6;border-color:#b6e7df}
+  .flowbox.green{background:#ecfdf3;border-color:#bbf7d0}
+  .flowbox.purple{background:#f5f3ff;border-color:#ddd6fe}
+  .flowbox.orange{background:#fff7e6;border-color:#fde68a}
+  .dark .flowbox{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:#fff}
+  .arrow{font-size:18px;color:#94a3b8;font-weight:800;display:flex;align-items:center}
+  .bigword{
+    font-size:clamp(40px,7vw,100px); line-height:.9; font-weight:900; letter-spacing:-.06em;
+  }
+  .split{display:grid; grid-template-columns:1.05fr .95fr; gap:28px; align-items:center; width:100%; max-width:1250px}
+  .quote{
+    border-left:4px solid #6ee7d3; padding-left:14px; margin-top:14px; color:#e2e8f0; font-size:16px; line-height:1.4;
+  }
+  .timeline{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px}
+  .before,.after{padding:14px;border-radius:12px}
+  .before{background:#f1f5f9}.after{background:#ecfdf3}
+  .before h3,.after h3{font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;color:#64748b}
+  .after h3{color:#166534}
+  .tiny{font-size:11px;color:var(--muted);line-height:1.35}
+  .dark .tiny{color:#cbd5e1}
+  .dotnav{position:fixed; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:5px; z-index:8; background:rgba(15,23,42,.12); padding:5px 9px; border-radius:999px; backdrop-filter:blur(10px)}
+  .dot{width:7px;height:7px;border-radius:50%;background:#94a3b8;border:0;padding:0;cursor:pointer;transition:transform .2s, background .2s}
+  .dot.active{background:#0f766e;transform:scale(1.4)}
+  .dark .dot.active{background:#6ee7d3}
+  .page{position:fixed;right:20px;bottom:10px;z-index:8;font-size:11px;font-weight:750;color:#64748b;background:rgba(255,255,255,.85);padding:4px 10px;border-radius:999px;backdrop-filter:blur(8px)}
+  .hero-stat{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:20px;max-width:1150px}
+  .hero-stat .card{min-height:110px}
+  .mini-note{font-size:10.5px;color:#64748b;margin-top:4px}
+  .dark .mini-note, .purple-dark .mini-note{color:#cbd5e1}
+  
+  .tier-badge{display:inline-block; padding:2px 7px; border-radius:6px; font-size:9.5px; font-weight:800; text-transform:uppercase; margin-bottom:5px}
+  .tier-1{background:#ccfbf1; color:#0f766e}
+  .tier-2{background:#ede9fe; color:#6d28d9}
+  .tier-3{background:#fef3c7; color:#b45309}
+
+  /* ACTOR BADGES */
+  .actor-tag{display:inline-block; padding:2.5px 8px; border-radius:999px; font-size:9.5px; font-weight:800; text-transform:uppercase; margin-bottom:5px}
+  .tag-sponsor{background:#fee2e2; color:#991b1b}
+  .tag-user{background:#e0e7ff; color:#3730a3}
+  .tag-champion{background:#dcfce7; color:#166534}
+  .tag-blocker{background:#fef3c7; color:#92400e}
+  .tag-customer{background:#f3e8ff; color:#6b21a8}
+
+  /* FUNNEL STYLES */
+  .funnel-wrapper{
+    display:grid; grid-template-columns:1.2fr .8fr; gap:26px; align-items:center; margin-top:14px; max-width:1250px;
+  }
+  .funnel-container{
+    display:flex; flex-direction:column; align-items:center; gap:7px; width:100%; position:relative;
+  }
+  .funnel-stage{
+    position:relative; border-radius:10px; padding:10px 16px; color:#fff;
+    display:flex; justify-content:space-between; align-items:center;
+    box-shadow:0 6px 16px rgba(0,0,0,.15); transition:transform .3s ease, filter .3s ease;
+    overflow:hidden; animation:slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .funnel-stage:hover{transform:scale(1.02); filter:brightness(1.1); cursor:pointer}
+  
+  .stage-1{width:100%; background:linear-gradient(90deg, #1e293b, #334155); border:1px solid rgba(255,255,255,.15); animation-delay:0.1s}
+  .stage-2{width:76%; background:linear-gradient(90deg, #0f766e, #059669); border:1px solid rgba(110,231,211,.4); animation-delay:0.3s}
+  .stage-3{width:52%; background:linear-gradient(90deg, #7c3aed, #6d28d9); border:1px solid rgba(216,180,254,.4); animation-delay:0.5s}
+  .stage-4{width:32%; background:linear-gradient(90deg, #d97706, #b45309); border:1px solid rgba(253,230,138,.4); animation-delay:0.7s}
+
+  .funnel-stage::after{
+    content:""; position:absolute; top:0; left:-100%; width:60%; height:100%;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent);
+    transform:skewX(-20deg); animation:shimmer 3s infinite;
+  }
+  .stage-1::after{animation-delay:0.5s} .stage-2::after{animation-delay:1.2s}
+  .stage-3::after{animation-delay:1.9s} .stage-4::after{animation-delay:2.6s}
+
+  .funnel-title{font-size:12.5px; font-weight:800}
+  .funnel-sub{font-size:9.5px; opacity:.85; margin-top:2px}
+  .funnel-val{font-size:18px; font-weight:900; white-space:nowrap}
+  .funnel-connector{height:10px; width:2px; background:dashed rgba(255,255,255,.3); position:relative}
+
+  /* TABLE STYLES */
+  table.deck-table{width:100%; border-collapse:collapse; margin-top:8px; font-size:11.5px}
+  table.deck-table th{background:rgba(15,23,42,.06); text-align:left; padding:7px 9px; font-weight:800; border-bottom:2px solid var(--line)}
+  table.deck-table td{padding:7px 9px; border-bottom:1px solid var(--line); vertical-align:top}
+  .dark table.deck-table th{background:rgba(255,255,255,.1); color:#fff; border-bottom-color:rgba(255,255,255,.2)}
+  .dark table.deck-table td{border-bottom-color:rgba(255,255,255,.1); color:#cbd5e1}
+
+  @keyframes slideDown { from{opacity:0; transform:translateY(-12px)} to{opacity:1; transform:translateY(0)} }
+  @keyframes shimmer { 0%{left:-100%} 50%,100%{left:150%} }
+
+  @media (max-width: 900px){
+    .slide{padding:28px 16px 36px}
+    .g5,.g4,.g3,.g2,.hero-stat,.split,.timeline,.funnel-wrapper{grid-template-columns:1fr}
+    .flow{flex-direction:column;align-items:stretch}
+    .arrow{transform:rotate(90deg);justify-content:center}
+    .source{left:16px}
+    .hint{display:none}
+    .stage-2{width:88%} .stage-3{width:76%} .stage-4{width:60%}
+  }
+</style>
+</head>
+<body>
+<div class="deck">
+  <div class="topbar">
+    <div class="brand">Autonomous AI Support System · <span>Discovery, PRD & Architecture</span></div>
+    <div class="hint">Use ← → arrow keys or scroll horizontally to navigate</div>
+  </div>
+
+  <main class="track" id="track">
+
+    <!-- SLIDE 1: DISCOVERY & EXECUTIVE OVERVIEW -->
+    <section class="slide dark">
+      <div class="eyebrow">Executive Summary & Operational Transformation</div>
+      <h1>Discovery to Impact:<br><span style="color:#6ee7d3">100% Manual Baseline → 3-Tier AI System.</span></h1>
+      <p class="sub" style="font-size:17px;max-width:950px">
+        CloudServe Solutions operated at a <b>100% manual human triage baseline</b> (8–12h response delay, 43.8% FCR, 56.2% escalation). We engineered an Autonomous L1 AI Pipeline + L2 Copilot Approver to deliver an <b>83.8% Total Effective FCR</b>, collapse response latency by <b>1,160×</b>, and reduce senior specialist load by <b>71.2%</b>.
+      </p>
+      <div class="hero-stat">
+        <div class="card"><div class="metric">100%</div><div class="label">Pre-Project Manual Baseline</div><div class="delta">Zero automated triage pre-existing</div></div>
+        <div class="card"><div class="metric">500</div><div class="label">Tickets & 22 Intents</div><div class="delta">71.4% answerable from KB docs</div></div>
+        <div class="card"><div class="metric">83.8%</div><div class="label">Total Effective FCR</div><div class="delta">+40.0 pp vs human baseline</div></div>
+        <div class="card"><div class="metric">16.2%</div><div class="label">L3 Specialist Queue Burden</div><div class="delta">−71.2% reduction in escalations</div></div>
+      </div>
+      <div class="source">Sources: 01_Discovery_Workbook.pdf · 02_Requirements_PRD.pdf · AyushYadav_Capstone_Report.pdf</div>
+    </section>
+
+    <!-- SLIDE 2: STAKEHOLDER INTERVIEWS (DEDICATED) -->
+    <section class="slide">
+      <div class="eyebrow">01 · Stage 1 Discovery: Stakeholder Interviews</div>
+      <h2>Qualitative insights from <span class="accent">5 Stakeholder Interviews</span>.</h2>
+      <p class="sub">Detailed pain points and operational practices gathered in <code>Stage_1_Discovery_Workbook.pdf</code>.</p>
+      
+      <div class="grid g5" style="margin-top:16px">
+        <!-- Marcus: Sponsor -->
+        <div class="card">
+          <div class="actor-tag tag-sponsor">Sponsor</div>
+          <h3>Marcus Adeyemi</h3>
+          <div class="tiny" style="font-weight:750;color:#0f766e">Head of Customer Support</div>
+          <div class="tiny" style="margin-top:6px"><b>Goal:</b> FCR to 60%+, SLA &lt; 2h, lower ticket costs.</div>
+          <div class="tiny" style="margin-top:6px;color:#dc2626"><b>Primary Fear:</b> Confidently wrong answer sent automatically that gets screenshot & posted on social media.</div>
+        </div>
+
+        <!-- Sofia: Front-Line User -->
+        <div class="card">
+          <div class="actor-tag tag-user">User (L1)</div>
+          <h3>Sofia Restrepo</h3>
+          <div class="tiny" style="font-weight:750;color:#0f766e">Tier 1 Support Agent</div>
+          <div class="tiny" style="margin-top:6px"><b>Practice:</b> Sorts queue by age to avoid SLA breach. Relies on memory & unreviewed personal text snippets.</div>
+          <div class="tiny" style="margin-top:6px"><b>Desire:</b> Wants AI Copilot (draft + page link), NOT unsupervised full automation.</div>
+        </div>
+
+        <!-- Daniel: Escalation User & Blocker Advocate -->
+        <div class="card">
+          <div class="actor-tag tag-blocker">User / Blocker</div>
+          <h3>Daniel Okonkwo</h3>
+          <div class="tiny" style="font-weight:750;color:#0f766e">Tier 2 Support Engineer</div>
+          <div class="tiny" style="margin-top:6px"><b>Insight:</b> ~50% of escalations could resolve at L1 with findable docs. Escalations arrive context-less.</div>
+          <div class="tiny" style="margin-top:6px;color:#b45309"><b>Hard Rule:</b> Never auto-send security, billing, or compliance. Demands context packet.</div>
+        </div>
+
+        <!-- Ines: Champion -->
+        <div class="card">
+          <div class="actor-tag tag-champion">Champion</div>
+          <h3>Ines Varga</h3>
+          <div class="tiny" style="font-weight:750;color:#0f766e">Technical Writer</div>
+          <div class="tiny" style="margin-top:6px"><b>Ownership:</b> 29 reviewed KB articles. Frustrated agents write from memory or stale personal snippets.</div>
+          <div class="tiny" style="margin-top:6px"><b>Requirement:</b> Mandatory source attribution on every AI answer to verify factual grounding.</div>
+        </div>
+
+        <!-- Ravi: Customer -->
+        <div class="card">
+          <div class="actor-tag tag-customer">Customer Voice</div>
+          <h3>Ravi Menon</h3>
+          <div class="tiny" style="font-weight:750;color:#0f766e">CloudServe Customer</div>
+          <div class="tiny" style="margin-top:6px"><b>Experience:</b> Self-serves documentation ~50% of the time. Desires fast reply for high-urgency incidents.</div>
+          <div class="tiny" style="margin-top:6px"><b>Expectation:</b> Wants transparency — knowing an answer is automated lets him verify before acting.</div>
+        </div>
+      </div>
+      <div class="source">Source: 01_Discovery_Workbook.pdf — Section 1: Stakeholder Analysis</div>
+    </section>
+
+    <!-- SLIDE 3: STAKEHOLDER DISCREPANCIES (DEDICATED) -->
+    <section class="slide soft">
+      <div class="eyebrow">02 · Stage 1 Discovery: Interview Discrepancies vs Data</div>
+      <h2>Resolving <span class="accent">Perception vs. Empirical Data Conflicts</span>.</h2>
+      <p class="sub">Where stakeholder accounts disagreed, and how ticket data audit established objective truth.</p>
+      
+      <table class="deck-table" style="margin-top:16px">
+        <thead>
+          <tr>
+            <th style="width:22%">The Identified Conflict</th>
+            <th style="width:25%">Stakeholder Perception Claim</th>
+            <th style="width:28%">Empirical Ticket Data Reality</th>
+            <th style="width:25%">Operational Architecture Decision</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>1. Escalation Cause: Volume vs. Findability</b></td>
+            <td><b>Marcus:</b> Escalation is a human staffing capacity problem.<br><b>Daniel:</b> ~50% are answerable at L1 with findable docs.</td>
+            <td><b>49.1% of escalations (138/281)</b> were <code>answerable_from_docs=true</code>, plus 92 auto-respond tickets escalated. Daniel was correct!</td>
+            <td>Escalations were artificially inflated by retrieval failure. Build RAG-assisted triage at L1.</td>
+          </tr>
+          <tr>
+            <td><b>2. Non-Fluent Language CSAT Penalty</b></td>
+            <td><b>Sofia:</b> Non-fluent English tickets receive the worst satisfaction scores.</td>
+            <td>Non-fluent CSAT is <b>3.04 vs 2.95 fluent</b> (slightly higher!). The real penalty is <b>+14% handling time</b> (466m vs 408m decoding delay).</td>
+            <td>Target intent extraction to solve agent decoding delays (+14% time), not CSAT-focused routing.</td>
+          </tr>
+          <tr>
+            <td><b>3. Enterprise Service Speed Perception</b></td>
+            <td><b>Ravi:</b> Enterprise tier receives faster responses in ~1 hour.</td>
+            <td>Enterprise actually had the <b>worst operational metrics</b> (484m resolution, 37.3% FCR, 62.7% escalation). Standard tier is largest & worst-served.</td>
+            <td>Focus automation throughput on Standard tier (51% volume) while safeguarding Enterprise complexity.</td>
+          </tr>
+          <tr>
+            <td><b>4. The Hidden Channel Opportunity</b></td>
+            <td><b>All Stakeholders:</b> Nobody named the <code>docs_comment</code> channel unprompted.</td>
+            <td>Accounts for 15.6% volume. Worst FCR (34.6%) & longest resolution (515m), but <b>highest CSAT (3.17)</b>.</td>
+            <td>Prioritize <code>docs_comment</code> for auto-response — highest customer satisfaction ROI.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="source">Source: 01_Discovery_Workbook.pdf — Section 1: Where the Accounts Disagree & What Nobody Said</div>
+    </section>
+
+    <!-- SLIDE 4: DATASET BASELINE & 22 INTENTS -->
+    <section class="slide">
+      <div class="eyebrow">03 · Stage 1 Discovery: Dataset Analysis</div>
+      <h2>Empirical Baseline across <span class="accent">500 Tickets & 22 Intents</span>.</h2>
+      <p class="sub">Key findings from 500 historical development tickets across 4 intake channels.</p>
+      
+      <div class="grid g4" style="margin-top:16px">
+        <div class="card">
+          <div class="metric">71.4%</div>
+          <div class="label">Answerable From Docs</div>
+          <div class="tiny" style="margin-top:5px">357/500 tickets. Answers exist in KB — core issue was <b>findability, not content</b>.</div>
+        </div>
+        <div class="card">
+          <div class="metric">43.8%</div>
+          <div class="label">Human Baseline FCR</div>
+          <div class="tiny" style="margin-top:5px">219/500 resolved on first contact by humans (Industry benchmark = 65%).</div>
+        </div>
+        <div class="card">
+          <div class="metric">56.2%</div>
+          <div class="label">Human Escalation Rate</div>
+          <div class="tiny" style="margin-top:5px">281/500 escalated to Tier 2 (at 4× higher handling cost).</div>
+        </div>
+        <div class="card">
+          <div class="metric">17.4%</div>
+          <div class="label">Must-Not-Auto-Respond</div>
+          <div class="tiny" style="margin-top:5px">87/500 tickets across 4 intents strictly barred from auto-sending.</div>
+        </div>
+      </div>
+
+      <div class="grid g2" style="margin-top:14px">
+        <div class="card">
+          <h3>Channel Volume & Operational Split</h3>
+          <table class="deck-table">
+            <thead>
+              <tr><th>Channel</th><th>Volume (%)</th><th>Human FCR</th><th>Resolution Time</th><th>CSAT</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><b>Email</b></td><td>42.4% (212)</td><td>45.8%</td><td>408 min</td><td>2.95</td></tr>
+              <tr><td><b>Chat</b></td><td>31.0% (155)</td><td>46.5%</td><td>392 min</td><td>2.92</td></tr>
+              <tr><td><b>Docs Comment (Hidden)</b></td><td>15.6% (78)</td><td>34.6%</td><td>515 min</td><td><b>3.17</b></td></tr>
+              <tr><td><b>Forum</b></td><td>11.0% (55)</td><td>41.8%</td><td>430 min</td><td>2.91</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h3>Data Sparsity & Regional Discrepancy</h3>
+          <ul class="tiny" style="padding-left:14px;margin-top:5px;line-height:1.5">
+            <li><b>22 Intent Classes:</b> 500 tickets spread across 22 intents = <b>~22 samples/class</b> (extreme data sparsity).</li>
+            <li><b>Noisy Urgency Labels:</b> Human agents assigned urgency based on stress rather than objective technical rules.</li>
+            <li><b>LATAM Regional Gap:</b> LATAM FCR was 38.3% vs NA 48.8% (10.5 pp gap exceeding 5 pp governance limit) due to non-fluent decoding delays.</li>
+            <li><b>Repeat Contact Rate:</b> 21.6% (108/500) due to manual search omissions.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="source">Source: 01_Discovery_Workbook.pdf — Section 2: What the Ticket Data Shows</div>
+    </section>
+
+    <!-- SLIDE 5: STAGE 2 PRD & MOSCOW MATRIX (DEDICATED) -->
+    <section class="slide purple-dark">
+      <div class="eyebrow">04 · Stage 2 Product Requirements Document</div>
+      <h2>Stage 2 PRD & <span style="color:#6ee7d3">MOSCoW Prioritization Matrix</span>.</h2>
+      <p class="sub">Structured requirements tracing discovery evidence to functional & governance acceptance criteria.</p>
+      
+      <table class="deck-table" style="margin-top:16px">
+        <thead>
+          <tr>
+            <th style="width:15%">Priority</th>
+            <th style="width:30%">Requirements Included</th>
+            <th style="width:35%">Discovery Evidence & Rationale</th>
+            <th style="width:20%">Acceptance Criteria</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="tier-badge" style="background:#fee2e2;color:#991b1b">MUST HAVE</span></td>
+            <td><b>FR-01</b> (Classification), <b>FR-02</b> (Flag A Routing), <b>FR-03</b> (RAG Retrieval), <b>FR-04</b> (Grounded Drafting), <b>FR-05</b> (Context Packet), <b>FR-06</b> (Human Review), <b>FR-07</b> (Decision Log), <b>FR-08</b> (4-Channel Ingest), <b>FR-09</b> (PII Guardrail), <b>FR-10</b> (Fairness Audit).</td>
+            <td>Essential capabilities required to satisfy governance compliance, clear evaluation gates, and achieve 60%+ autonomous FCR.</td>
+            <td>100% decision auditability, 0 PII leaks, 60%+ FCR, &lt;5pp regional gap.</td>
+          </tr>
+          <tr>
+            <td><span class="tier-badge" style="background:#fef3c7;color:#b45309">SHOULD HAVE</span></td>
+            <td><b>FR-11</b> (Non-Fluent Restatement), <b>FR-12</b> (SLA & Urgency Queue Ordering), <b>FR-13</b> (OOP Architecture), <b>FR-14</b> (3-Tier Operational Routing).</td>
+            <td>High-value operational enhancements that narrow handling-time gaps (+14% non-fluent delay) and maximize human agent drafting speed.</td>
+            <td>Non-fluent handling gap closed; 1-click draft approval active.</td>
+          </tr>
+          <tr>
+            <td><span class="tier-badge" style="background:#ccfbf1;color:#0f766e">COULD HAVE</span></td>
+            <td><b>Phase 2 Fine-Tuned ML Classifiers</b> (DeBERTa-v3/SetFit), Automated KB Staleness Alerts.</td>
+            <td>Long-term Northstar optimizations for when ticket volume reaches &gt;5,000 production records.</td>
+            <td>Latency &lt;50ms, zero LLM token cost.</td>
+          </tr>
+          <tr>
+            <td><span class="tier-badge" style="background:#e2e8f0;color:#334155">WON'T HAVE</span></td>
+            <td>Customer-Facing Chatbot, Personal Snippet Ingestion, <b>Direct CSAT Upliftment Interventions</b>.</td>
+            <td><b>CSAT Non-Intervention Rationale:</b> Decided NOT to build prompt sentiment manipulation. CSAT (3.2/5) is an operational symptom of long delays (8-12h) and low FCR (&lt;50%), with an FCR ceiling of 3.41. Prompt tone changes alone cannot fix CSAT without addressing resolution speed.</td>
+            <td>Scope boundaries strictly enforced.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="source">Source: 02_Requirements_PRD.pdf — Section 4 & Section 6 (MOSCoW Matrix)</div>
+    </section>
+
+    <!-- SLIDE 6: SYSTEM ARCHITECTURE & 3-TIER ROUTING -->
+    <section class="slide soft">
+      <div class="eyebrow">05 · Architecture & Multi-Agent Flow</div>
+      <h2>Modular Event-Driven <span class="accent">Multi-Agent LangGraph Architecture</span>.</h2>
+      <p class="sub">Processing tickets from 4 input channels through Intent, RAG, Drafter, Guardrails, and Coordinator Decision Engine.</p>
+      
+      <div class="flow" style="margin-top:16px">
+        <div class="flowbox">
+          <div class="tier-badge" style="background:#e2e8f0;color:#334155">1. Ingestion</div>
+          <h3>Normalizer</h3>
+          <div class="tiny">Normalizes Email, Chat, Forum, & Docs Comment into canonical JSON packet.</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="flowbox teal">
+          <div class="tier-badge tier-1">2. Classification</div>
+          <h3>Intent & Urgency</h3>
+          <div class="tiny">Parallel Few-Shot LLM Sub-Agents across 22 Intent classes.</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="flowbox green">
+          <div class="tier-badge tier-1">3. Retrieval</div>
+          <h3>ChromaDB RAG</h3>
+          <div class="tiny">Dense semantic search over 29 canonical KB docs. Index rebuilt on startup.</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="flowbox purple">
+          <div class="tier-badge tier-2">4. Generation</div>
+          <h3>Response Drafter</h3>
+          <div class="tiny">Synthesizes grounded drafts with explicit Markdown KB citations.</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="flowbox orange">
+          <div class="tier-badge tier-3">5. Governance</div>
+          <h3>Guardrail Pipeline</h3>
+          <div class="tiny">Validates PII, prompt leakage, toxicity, & grounding before routing.</div>
+        </div>
+      </div>
+
+      <div class="grid g3" style="margin-top:14px">
+        <div class="card" style="border-top:3px solid #16a34a">
+          <div class="tier-badge tier-1">Tier 1 · Autonomous AI</div>
+          <h3>L1 Auto-Send (61.0% FCR)</h3>
+          <div class="tiny">High-confidence, valid RAG matches automatically dispatched to customer in <b>21.8 seconds</b>.</div>
+        </div>
+        <div class="card" style="border-top:3px solid #7c3aed">
+          <div class="tier-badge tier-2">Tier 2 · Copilot Approver</div>
+          <h3>L2 Human Review (22.8% FCR)</h3>
+          <div class="tiny">Policy-suppressed tickets (FLAG A / Billing) receive pre-drafted response for <b>1-click agent approval</b>.</div>
+        </div>
+        <div class="card" style="border-top:3px solid #dc2626">
+          <div class="tier-badge tier-3">Tier 3 · Senior Specialist</div>
+          <h3>L3 Queue (16.2% Load)</h3>
+          <div class="tiny">Unanswerable infrastructure outages route directly to senior engineers with structured context packets.</div>
+        </div>
+      </div>
+      <div class="source">Sources: AyushYadav_Capstone_Report.pdf — Section 5 (Figure 1 SVG Architecture)</div>
+    </section>
+
+    <!-- SLIDE 7: GUARDRAILS & SAFETY PIPELINE (DEDICATED) -->
+    <section class="slide">
+      <div class="eyebrow">06 · Safety, Governance & Guardrails</div>
+      <h2>Enterprise <span class="accent">Guardrails & Security Pipeline</span>.</h2>
+      <p class="sub">Comprehensive multi-layer validation package (`src/guardrails/`) enforcing privacy, prompt security, and auditability.</p>
+      
+      <div class="grid g3" style="margin-top:16px">
+        <div class="card" style="border-left:4px solid #2563eb">
+          <div class="kicker">Ingress Security</div>
+          <h3 style="margin-top:8px">1. Ingress Validation</h3>
+          <ul class="tiny" style="padding-left:14px;margin-top:4px;line-height:1.4">
+            <li><b>Prompt Injection Detector:</b> Intercepts adversarial jailbreaks and system prompt override attempts.</li>
+            <li><b>Jailbreak Classifier:</b> Scans for malicious instruction hijacking before agent processing.</li>
+            <li><b>Action:</b> Immediately flags ticket and routes to L2 Human Review queue with safety tag.</li>
+          </ul>
+        </div>
+
+        <div class="card" style="border-left:4px solid #dc2626">
+          <div class="kicker" style="background:#fee2e2;color:#991b1b">Egress Security</div>
+          <h3 style="margin-top:8px">2. Egress & Privacy Validation</h3>
+          <ul class="tiny" style="padding-left:14px;margin-top:4px;line-height:1.4">
+            <li><b>PII Masking Scanner:</b> Scans outbound text for credit cards, SSNs, API tokens, and customer names.</li>
+            <li><b>Prompt Leakage Prevention:</b> Blocks generated drafts that reveal internal system prompts or rules.</li>
+            <li><b>Toxic & Harm Filter:</b> Enforces zero-tolerance safety on outbound customer language.</li>
+          </ul>
+        </div>
+
+        <div class="card" style="border-left:4px solid #16a34a">
+          <div class="kicker" style="background:#dcfce7;color:#15803d">Auditability & Resolution</div>
+          <h3 style="margin-top:8px">3. Resolution & Audit Store</h3>
+          <ul class="tiny" style="padding-left:14px;margin-top:4px;line-height:1.4">
+            <li><b>Zero API Key Dependency:</b> Resolved Guardrails AI API key dependency by integrating open-source PyPI packages natively.</li>
+            <li><b>SQLite Decision Repository:</b> Persists 100% of guardrail validation check results to <code>storage/decisions.db</code>.</li>
+            <li><b>Audit Compliance:</b> Ready for autumn compliance review.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card highlight" style="margin-top:14px">
+        <div style="display:flex; justify-content:space-between; align-items:center">
+          <div>
+            <div style="font-size:11px; font-weight:800; text-transform:uppercase; color:#a7f3d0">Guardrail Audit Performance</div>
+            <div style="font-size:22px; font-weight:850; margin-top:2px">0 Outbound PII Leaks · 50 Prompt Leakage Activations Gracefully Intercepted</div>
+          </div>
+          <div style="font-size:32px; font-weight:900">100% Safe</div>
+        </div>
+      </div>
+      <div class="source">Source: AyushYadav_Capstone_Report.pdf — Section 8: Governance & Risk Management</div>
+    </section>
+
+    <!-- SLIDE 8: STAGE 5 PRD REVISION LOG (DEDICATED) -->
+    <section class="slide dark">
+      <div class="eyebrow">07 · Stage 5 PRD Revision Log</div>
+      <h2>Stage 5 PRD Revisions: <span style="color:#6ee7d3">Hypothesis vs Realized Architecture</span>.</h2>
+      <p class="sub">Compulsory post-evaluation revisions logged in <code>05_PRD_Revision_Log.pdf</code> based on empirical findings.</p>
+      
+      <table class="deck-table" style="margin-top:16px">
+        <thead>
+          <tr>
+            <th style="width:16%">Requirement ID</th>
+            <th style="width:26%">PRD v1.0 Initial Hypothesis</th>
+            <th style="width:30%">PRD v2.0 Revised Architecture</th>
+            <th style="width:28%">Empirical Trigger & Engineering Rationale</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>FR-01</b> (Classification)</td>
+            <td>Train custom supervised ML classifiers (DeBERTa / Scikit-Learn).</td>
+            <td>Use <b>Few-Shot LLM Prompts</b> for V1; set <b>Fine-Tuned ML Models</b> as Phase 2 Northstar.</td>
+            <td>Pre-project baseline was 100% manual human triage with noisy labels. Spreading 500 tickets over 22 intent classes (~22 samples/class) caused supervised ML to overfit. LLM few-shot prompting enforced objective rules in V1.</td>
+          </tr>
+          <tr>
+            <td><b>FR-02</b> (Escalation)</td>
+            <td>EXIT A early stop (no draft generated on escalations).</td>
+            <td><b>FLAG A Copilot drafting</b> (RAG pre-drafts attached for human review).</td>
+            <td>EXIT A early aborts forced human agents back into 100% manual drafting (~12 min/ticket). Copilot pre-drafting saved ~17.8 hours of human effort.</td>
+          </tr>
+          <tr>
+            <td><b>FR-04</b> (Grounding)</td>
+            <td>Strict sentence substring matching.</td>
+            <td>Relaxed sentence substring matching; RAG candidate filtering.</td>
+            <td>Strict sentence matching caused false-positive blocks on valid drafts synthesizing multiple articles. Relaxing increased FCR to 61.0% with 0 false claims.</td>
+          </tr>
+          <tr>
+            <td><b>CSAT Policy</b></td>
+            <td>Targeted 4.0/5 CSAT upliftment.</td>
+            <td>Categorized in MOSCoW <b>"Won't Have"</b> (CSAT Non-Intervention).</td>
+            <td>CSAT (3.2/5) is an operational symptom of long delays (8-12 hrs) and low FCR (&lt;50%), with an FCR ceiling of 3.41. CSAT cannot be inflated via prompt phrasing alone without fixing response latency and FCR.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="source">Source: 05_PRD_Revision_Log.pdf — Section 2 & Section 3 (PRD Revisions)</div>
+    </section>
+
+    <!-- SLIDE 9: ANIMATED SUPPORT TICKET FUNNEL -->
+    <section class="slide dark" style="background:#071426">
+      <div class="eyebrow">08 · Support Queue Automation Funnel</div>
+      <h2>How <span style="color:#6ee7d3">500 incoming tickets</span> get filtered through 3 tiers.</h2>
+      <p class="sub">Visualizing ticket volume flow from intake through front-line AI auto-response down to specialist escalations.</p>
+
+      <div class="funnel-wrapper">
+        <div class="funnel-container">
+          <!-- STAGE 1: INTAKE -->
+          <div class="funnel-stage stage-1">
+            <div>
+              <div class="funnel-title">1. Total Incoming Ticket Volume Intake</div>
+              <div class="funnel-sub">100% of customer tickets entering platform</div>
+            </div>
+            <div class="funnel-val">500 Tickets</div>
+          </div>
+
+          <div class="funnel-connector"></div>
+
+          <!-- STAGE 2: L1 AI AUTO-RESPOND -->
+          <div class="funnel-stage stage-2">
+            <div>
+              <div class="funnel-title">2. L1 AI Autonomous Auto-Response</div>
+              <div class="funnel-sub">Resolved instantly in ~21.8s (Zero human involvement)</div>
+            </div>
+            <div class="funnel-val" style="color:#a7f3d0">305 (61.0%)</div>
+          </div>
+
+          <div class="funnel-connector"></div>
+
+          <!-- STAGE 3: L2 HUMAN DRAFT APPROVAL -->
+          <div class="funnel-stage stage-3">
+            <div>
+              <div class="funnel-title">3. L2 Human Copilot Draft Approval</div>
+              <div class="funnel-sub">Pre-drafted with RAG docs · 1-click human send (~1-2m)</div>
+            </div>
+            <div class="funnel-val" style="color:#e9d5ff">114 (22.8%)</div>
+          </div>
+
+          <div class="funnel-connector"></div>
+
+          <!-- STAGE 4: L3 SPECIALIST ESCALATION -->
+          <div class="funnel-stage stage-4">
+            <div>
+              <div class="funnel-title">4. L3 Specialist Escalation</div>
+              <div class="funnel-sub">Complex unanswerable infrastructure outages</div>
+            </div>
+            <div class="funnel-val" style="color:#fde68a">81 (16.2%)</div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT SIDE SUMMARY CARDS -->
+        <div class="grid" style="gap:10px">
+          <div class="card highlight">
+            <div style="font-size:10.5px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#a7f3d0">Total System Outlet</div>
+            <div style="font-size:30px; font-weight:900; margin-top:2px">83.8% Total FCR</div>
+            <div style="font-size:10.5px; margin-top:2px; opacity:.9">419 of 500 tickets resolved on first contact (Autonomous + Assisted)</div>
+          </div>
+          <div class="card">
+            <div class="metric small" style="color:#10b981">−71.2%</div>
+            <div class="label">Specialist Escalation Reduction</div>
+            <div class="tiny" style="margin-top:3px">Specialist queue burden collapsed from <b>281 down to 81 tickets</b>.</div>
+          </div>
+          <div class="card">
+            <div class="metric small" style="color:#6366f1">−61.0%</div>
+            <div class="label">Direct Human Workload Removed</div>
+            <div class="tiny" style="margin-top:3px">305 tickets handled entirely without human agent intervention.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="source">Source: AyushYadav_Capstone_Report.pdf — Section 7: Evaluation Results</div>
+    </section>
+
+    <!-- SLIDE 10: THE OPERATIONAL TIER REALIGNMENT -->
+    <section class="slide">
+      <div class="eyebrow">09 · Organizational Architecture Evolution</div>
+      <h2>Re-aligning support into <span class="accent">Three Operational Tiers</span>.</h2>
+      <p class="sub">How front-line human agents evolved into AI Copilot Approvers, protecting senior specialists from repetitive workload.</p>
+      <div class="flow" style="margin-top:16px">
+        <div class="flowbox teal">
+          <div class="tier-badge tier-1">Tier 1 · Front-Line AI</div>
+          <h3>L1 AI Support Agent</h3>
+          <div class="metric small">305 Tickets</div>
+          <div class="tiny" style="margin-top:5px">Handles 100% volume intake. Directly auto-responds & resolves <b>61.0% of tickets</b> in 21.8s.</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="flowbox purple">
+          <div class="tier-badge tier-2">Tier 2 · Copilot Approver</div>
+          <h3>L2 Human Agent <span style="font-size:11px;font-weight:normal">(Former Human L1)</span></h3>
+          <div class="metric small">114 FCR Approvals</div>
+          <div class="tiny" style="margin-top:5px">Reviews AI pre-retrieved docs & ready drafts for policy-suppressed tickets. Single-touch approval in ~1–2 min.</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="flowbox orange">
+          <div class="tier-badge tier-3">Tier 3 · Deep Specialist</div>
+          <h3>L3 Human Specialist <span style="font-size:11px;font-weight:normal">(Former Human L2)</span></h3>
+          <div class="metric small">81 Escalations</div>
+          <div class="tiny" style="margin-top:5px">Receives only true unanswerable edge cases or deep engineering bugs. Queue load dropped from 281 to 81.</div>
+        </div>
+      </div>
+      <div class="grid g3" style="margin-top:14px">
+        <div class="card"><div class="metric">61.0%</div><div class="label">Autonomous L1 AI FCR</div><div class="mini-note">0 human touches needed</div></div>
+        <div class="card"><div class="metric">22.8%</div><div class="label">Assisted L2 Human FCR</div><div class="mini-note">1-click human draft approval</div></div>
+        <div class="card"><div class="metric">−71.2%</div><div class="label">Specialist Queue Load</div><div class="mini-note">281 → 81 escalations entering L3</div></div>
+      </div>
+      <div class="source">Source: AyushYadav_Capstone_Report.pdf — Section 5 & Section 7</div>
+    </section>
+
+    <!-- SLIDE 11: TECHNICAL JUSTIFICATION OF FCR -->
+    <section class="slide soft">
+      <div class="eyebrow">10 · First Contact Resolution Framework</div>
+      <h2>Why Policy Suppression does <span class="accent">NOT decrease FCR</span>.</h2>
+      <p class="sub">Deliberately suppressing direct AI auto-response is a governance safety choice — not a capability limitation.</p>
+      <div class="grid g3" style="margin-top:16px">
+        <div class="card">
+          <div class="kicker">Upfront AI Reasoning</div>
+          <h3 style="margin-top:10px">1. Complete Pre-Computation</h3>
+          <p class="tiny">The L1 AI Agent parses context, retrieves canonical RAG docs, and pre-drafts the exact resolution <i>before any human opens the ticket</i>.</p>
+        </div>
+        <div class="card">
+          <div class="kicker" style="background:#f3e8ff;color:#6b21a8">Single-Touch Approval</div>
+          <h3 style="margin-top:10px">2. L2 Human Review (~1-2m)</h3>
+          <p class="tiny">When the L2 Human Agent opens the ticket, they inspect the ready draft, make any minor edits, and click send on first touch.</p>
+        </div>
+        <div class="card">
+          <div class="kicker" style="background:#ecfdf5;color:#047857">Customer Experience</div>
+          <h3 style="margin-top:10px">3. First Contact Resolution</h3>
+          <p class="tiny">The customer receives a fast, doc-grounded answer on the very first human touchpoint with zero multi-tier transfers or back-and-forth loops.</p>
+        </div>
+      </div>
+      <div class="card highlight" style="margin-top:14px">
+        <div style="display:flex; justify-content:space-between; align-items:center">
+          <div>
+            <div style="font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#a7f3d0">Total System Outcome</div>
+            <div style="font-size:26px; font-weight:850; margin-top:2px">61.0% Autonomous FCR + 22.8% Assisted FCR = 83.8% Effective FCR</div>
+          </div>
+          <div style="font-size:36px; font-weight:900">+40.0 pp</div>
+        </div>
+      </div>
+      <div class="source">Source: AyushYadav_Capstone_Report.pdf — Section 7.2: FCR Justification</div>
+    </section>
+
+    <!-- SLIDE 12: MACRO PERFORMANCE COMPARISON -->
+    <section class="slide">
+      <div class="eyebrow">11 · Baseline vs AI System Metrics</div>
+      <h2>The agent fundamentally changes <span class="accent">queue economics</span>.</h2>
+      <p class="sub">Comparing 500 baseline tickets under legacy human handling against the modern 3-tier AI system.</p>
+      <div class="grid g4" style="margin-top:16px">
+        <div class="card"><div class="metric">83.8%</div><div class="label">Total Effective FCR</div><div class="delta">43.8% Baseline → 83.8% System</div></div>
+        <div class="card"><div class="metric">195</div><div class="label">Tickets In Human Queue</div><div class="delta">500 → 195 (-61% workload)</div></div>
+        <div class="card"><div class="metric">81</div><div class="label">L3 Specialist Escalations</div><div class="delta">281 → 81 (-71.2% specialist load)</div></div>
+        <div class="card"><div class="metric">21.8s</div><div class="label">Mean L1 Response Latency</div><div class="delta">421.7 min → 21.8 sec (1,160× faster)</div></div>
+      </div>
+      <div class="timeline" style="margin-top:14px">
+        <div class="before">
+          <h3>Legacy 2-Tier Baseline</h3>
+          <div class="compare">
+            <div class="barwrap"><div class="bar gray" style="height:120px"></div><div class="barval">281</div><div class="barlabel">L2 Escalated</div></div>
+            <div class="barwrap"><div class="bar gray" style="height:90px"></div><div class="barval">219</div><div class="barlabel">L1 FCR</div></div>
+          </div>
+        </div>
+        <div class="after">
+          <h3>Modern 3-Tier AI System</h3>
+          <div class="compare">
+            <div class="barwrap"><div class="bar green" style="height:130px"></div><div class="barval">305</div><div class="barlabel">L1 AI Auto</div></div>
+            <div class="barwrap"><div class="bar purple" style="height:75px"></div><div class="barval">114</div><div class="barlabel">L2 Draft FCR</div></div>
+            <div class="barwrap"><div class="bar orange" style="height:40px"></div><div class="barval">81</div><div class="barlabel">L3 Specialist</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="source">Source: AyushYadav_Capstone_Report.pdf — Section 7.1: Comparative Metrics</div>
+    </section>
+
+    <!-- SLIDE 13: RECLAIM GROUP & COPILOT QUALITY -->
+    <section class="slide dark">
+      <div class="eyebrow">12 · Over-Escalated Volume Reclaimed</div>
+      <div class="split">
+        <div>
+          <div class="bigword" style="color:#6ee7d3">68.5%</div>
+          <h2 style="margin-top:5px">of historically over-escalated tickets captured by AI.</h2>
+          <p class="sub">Out of 92 tickets where human agents escalated despite documentation being available and ground truth requiring auto-respond:</p>
+          <div class="quote">The AI system captured <b style="color:#6ee7d3">63 out of 92 tickets</b> for instant, doc-backed automated resolution, saving <b>~17.8 hours</b> of human drafting time.</div>
+        </div>
+        <div class="grid g2">
+          <div class="card"><div class="metric">2.62</div><div class="label">Human Baseline CSAT</div><div class="mini-note">Reclaim group baseline</div></div>
+          <div class="card"><div class="metric">730m</div><div class="label">Human Resolution Time</div><div class="mini-note">~12.2 hours average</div></div>
+          <div class="card"><div class="metric">41.3%</div><div class="label">Repeat Contact Rate</div><div class="mini-note">38 / 92 baseline repeat loops</div></div>
+          <div class="card"><div class="metric">45,990m</div><div class="label">Customer Wait Time Avoided</div><div class="mini-note">63 tickets × 730 min saved</div></div>
+        </div>
+      </div>
+      <div class="source">Source: AyushYadav_Capstone_Report.pdf — Section 7.3: Reclaim Ticket Analysis</div>
+    </section>
+
+    <!-- SLIDE 14: RAG SEARCH & STARTUP INDEX REBUILDING -->
+    <section class="slide">
+      <div class="eyebrow">13 · RAG Knowledge Assistance Engine</div>
+      <h2>Pre-retrieving canonical documentation for <span class="accent">81.2% of queries</span>.</h2>
+      <p class="sub">Ensuring human agents at L2 and L3 never start handling a ticket from a blank search bar.</p>
+      <div class="grid g3" style="margin-top:16px">
+        <div class="card">
+          <div class="metric">81.2%</div><div class="label">Answerable Retrieval Hit Rate</div>
+          <p class="mini-note">283 / 357 answerable tickets retrieved at least 1 correct canonical document.</p>
+        </div>
+        <div class="card">
+          <div class="metric">ChromaDB</div><div class="label">Vector Index Strategy</div>
+          <p class="mini-note">Rebuilds clean index on startup (`ingest.py`) to eliminate stale doc risks.</p>
+        </div>
+        <div class="card">
+          <div class="metric">65.91%</div><div class="label">Mean Document Precision</div>
+          <p class="mini-note">Precision of retrieved canonical docs across answerable evaluations.</p>
+        </div>
+      </div>
+      <div class="flow" style="margin-top:16px">
+        <div class="flowbox"><h3>1. Ticket Intake</h3><div class="tiny">LLM Intent & Urgency Classifier parses query</div></div>
+        <div class="arrow">→</div>
+        <div class="flowbox teal"><h3>2. RAG Dense Retrieval</h3><div class="tiny">Vector search retrieves canonical KB articles</div></div>
+        <div class="arrow">→</div>
+        <div class="flowbox purple"><h3>3. Pre-Draft & Assist</h3><div class="tiny">Grounds suggested response draft for L2 Human approval</div></div>
+      </div>
+      <div class="source">Source: AyushYadav_Capstone_Report.pdf — Section 5.1 & Section 6</div>
+    </section>
+
+    <!-- SLIDE 15: REGIONAL FAIRNESS AUDIT -->
+    <section class="slide soft">
+      <div class="eyebrow">14 · Demographic Fairness & Compliance</div>
+      <h2>Demographic Fairness Audit: <span class="accent">Zero Regional Bias Gap</span>.</h2>
+      <p class="sub">Validating system quality across customer regions, contract tiers, and language fluency.</p>
+      <div class="grid g4" style="margin-top:16px">
+        <div class="card"><div class="metric">62.4%</div><div class="label">North America FCR</div><div class="mini-note">Baseline = 48.8%</div></div>
+        <div class="card"><div class="metric">59.7%</div><div class="label">Latin America FCR</div><div class="mini-note">Baseline = 38.3%</div></div>
+        <div class="card"><div class="metric">2.7 pp</div><div class="label">Regional FCR Variance</div><div class="mini-note">Well below 5.0 pp governance limit</div></div>
+        <div class="card"><div class="metric">0.0 pp</div><div class="label">Non-Fluent FCR Gap</div><div class="mini-note">Restatement eliminated decoding delay</div></div>
+      </div>
+      <div class="card" style="margin-top:14px;background:#ffffff">
+        <h3 style="color:#0f766e">Non-Fluent English Restatement Sub-Agent (`src/agents/fluency.py`)</h3>
+        <p class="tiny" style="margin-top:4px">
+          The baseline LATAM 10.5 pp FCR gap was driven by human agent decoding delays (+14% time) on non-fluent phrasing. Our Non-Fluent Restatement sub-agent parses non-native phrasing into normalized English queries before vector retrieval, closing the regional FCR gap to <b>2.7 pp</b> (passing the 5.0 pp compliance gate).
+        </p>
+      </div>
+      <div class="source">Source: AyushYadav_Capstone_Report.pdf — Section 8.2: Demographic Fairness Audit</div>
+    </section>
+
+    <!-- SLIDE 16: OPTIMIZATION ROADMAP & CONCLUSION -->
+    <section class="slide purple-dark">
+      <div class="eyebrow">15 · Production Roadmap & Conclusion</div>
+      <h1>From 61.0% → <span style="color:#6ee7d3">Phase 2 ML Classifier Northstar.</span></h1>
+      <div class="grid g3" style="margin-top:16px">
+        <div class="card">
+          <div class="kicker">Phase 1 (Current Deployment)</div>
+          <h3 style="margin-top:8px">Few-Shot Multi-Agent Pipeline</h3>
+          <p class="tiny">Operates on Groq / Gemini / OpenRouter with L1 Autonomous AI + L2 Copilot Approver. Delivered 83.8% Total Effective FCR.</p>
+        </div>
+        <div class="card">
+          <div class="kicker" style="background:#ccfbf1;color:#0f766e">Phase 2 (Northstar ML)</div>
+          <h3 style="margin-top:8px">Fine-Tuned ML Classifiers</h3>
+          <p class="tiny">Once 5,000+ clean production AI logs are recorded, train fine-tuned DeBERTa-v3/SetFit ML models, reducing latency to &lt;50ms & zero token cost.</p>
+        </div>
+        <div class="card">
+          <div class="kicker" style="background:#fef3c7;color:#b45309">Phase 3 (Policy Shift)</div>
+          <h3 style="margin-top:8px">Policy Relaxation</h3>
+          <p class="tiny">Review 30 days of L2 Copilot approval logs for <code>billing_query</code> and <code>data_residency</code> to safely permit direct L1 auto-response (+8.4 pp FCR boost).</p>
+        </div>
+      </div>
+      <div class="card highlight" style="margin-top:14px">
+        <div style="font-size:18px; font-weight:800; line-height:1.3">
+          "The Autonomous Multi-Agent Support System transformed CloudServe's support operations — delivering an 83.8% Total Effective FCR, collapsing response times by 1,160×, and relieving senior engineering queue burden by 71.2%."
+        </div>
+      </div>
+      <div class="source">Source: AyushYadav_Capstone_Report.pdf — Section 10: Conclusions & Production Roadmap</div>
+    </section>
+
+  </main>
+  <div class="dotnav" id="dotnav"></div>
+  <div class="page" id="page">01 / 16</div>
+</div>
+
+<script>
+const track = document.getElementById('track');
+const slides = [...document.querySelectorAll('.slide')];
+const dots = document.getElementById('dotnav');
+const page = document.getElementById('page');
+
+slides.forEach((_,i)=>{
+  const b=document.createElement('button');
+  b.className='dot'+(i===0?' active':'');
+  b.title='Slide '+(i+1);
+  b.onclick=()=>slides[i].scrollIntoView({behavior:'smooth',inline:'start'});
+  dots.appendChild(b);
+});
+
+let active=0;
+const obs = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      active=slides.indexOf(e.target);
+      [...dots.children].forEach((d,i)=>d.classList.toggle('active',i===active));
+      page.textContent=String(active+1).padStart(2,'0')+' / '+slides.length;
+    }
+  })
+},{root:track,threshold:.6});
+slides.forEach(s=>obs.observe(s));
+
+window.addEventListener('keydown',e=>{
+  if(['ArrowRight','PageDown'].includes(e.key)){ e.preventDefault(); slides[Math.min(active+1,slides.length-1)].scrollIntoView({behavior:'smooth',inline:'start'}); }
+  if(['ArrowLeft','PageUp'].includes(e.key)){ e.preventDefault(); slides[Math.max(active-1,0)].scrollIntoView({behavior:'smooth',inline:'start'}); }
+  if(e.key==='Home'){ e.preventDefault(); slides[0].scrollIntoView({behavior:'smooth',inline:'start'}); }
+  if(e.key==='End'){ e.preventDefault(); slides[slides.length-1].scrollIntoView({behavior:'smooth',inline:'start'}); }
+});
+track.addEventListener('wheel', e=>{
+  if(Math.abs(e.deltaY) > Math.abs(e.deltaX)){
+    track.scrollLeft += e.deltaY;
+  }
+},{passive:true});
+</script>
+</body>
+</html>

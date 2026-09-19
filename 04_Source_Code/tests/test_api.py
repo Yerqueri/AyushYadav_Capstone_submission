@@ -75,3 +75,12 @@ def test_triage_ticket_missing_required_field(client):
         resp = client.post("/tickets", json=bad)
     # Either 422 (Pydantic) or 500 (unhandled)
     assert resp.status_code in (422, 500)
+
+
+def test_triage_tickets_batch_returns_200(client):
+    resp = client.post("/tickets/batch", json=[_VALID_TICKET, _VALID_TICKET])
+    assert resp.status_code == 200
+    data = resp.json()
+    assert isinstance(data, list)
+    assert len(data) == 2
+

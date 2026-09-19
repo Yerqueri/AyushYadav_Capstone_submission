@@ -2,25 +2,25 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# gcc/g++ required by sentence-transformers; curl for the healthcheck
+# gcc/g++ required by sentence-transformers; curl for healthchecks
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python deps before copying source so this layer is cached
+# Install Python deps before copying source so layer caching works
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download all-MiniLM-L6-v2 so startup doesn't need outbound network
+# Pre-download all-MiniLM-L6-v2 embedding model so container startup needs zero outbound model downloads
 RUN python -c "from chromadb.utils.embedding_functions import DefaultEmbeddingFunction; DefaultEmbeddingFunction()"
 
-# Copy application source
+# Copy application source code and datasets
 COPY . .
 
-# storage/ is created at runtime; pre-create so the mount point exists
-RUN mkdir -p storage
+# Ensure storage/ and data/ directories exist for volume mounts
+RUN mkdir -p storage data evaluation/results
 
 RUN chmod +x docker-entrypoint.sh
 

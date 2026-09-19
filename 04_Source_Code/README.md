@@ -1,13 +1,13 @@
-# CloudServe Support Triage — Backend
+# CloudServe Support Triage — Backend & Operations Runbook
 
-A coordinator-mediated multi-agent pipeline following Object-Oriented Programming (OOP) and SOLID design principles. It classifies incoming support tickets, retrieves relevant documentation, and either drafts an automated response or escalates to human agents via a 3-tier operational architecture.
+A production-ready, coordinator-mediated multi-agent triage pipeline built following Object-Oriented Programming (OOP) and SOLID design principles. It automatically classifies incoming support tickets, retrieves relevant documentation, applies GuardrailsAI governance checks, and either emits a grounded auto-response or escalates to human agents with a complete pre-drafted context package via a 3-tier operational architecture.
 
 ---
 
 ## 3-Tier Operational Architecture
 
 ```text
-POST /tickets
+POST /tickets  OR  POST /tickets/batch  OR  One-Shot Batch CLI
     │
     ▼
 [Guardrail Checkpoint 1 — INGRESS]   detect_jailbreak + detect_prompt_injection
@@ -15,7 +15,7 @@ POST /tickets
     ▼
 [PR-00 Coordinator loop — max MAX_COORDINATOR_TURNS turns]
     ├─► PR-02 FluencyClassifier      (skipped if language_fluency provided)
-    ├─► PR-01 IntentClassifier       ──► EXIT A (escalate) if must_not_auto_respond
+    ├─► PR-01 IntentClassifier       ──► FLAG A (flag MNR but continue pipeline)
     ├─► PR-03 UrgencyClassifier
     ├─► PR-04 RagAgent               ──► EXIT B (escalate) if not answerable
     └─► PR-05 ResponseDrafter
@@ -34,7 +34,7 @@ POST /tickets
 └──────────────────────────────────────┴──────────────────────────────────────┘
     │
     ▼
-[Decision Log — SQLite]  [Prometheus Metrics — :8001]
+[Decision Log — SQLite: ./storage/decisions.db]  [Prometheus Metrics — :8001/metrics]
     │
     ▼
 HTTP 200 TriageResponse
@@ -51,126 +51,339 @@ HTTP 200 TriageResponse
 
 ---
 
-## Running with Docker (Recommended)
+## Complete Environment Variable Register (`.env.example`)
 
-**Requirements:** Docker and Docker Compose.
+Before running natively or via Docker, copy `.env.example` to `.env` and configure your API key(s):
 
 ```bash
 cp .env.example .env
-# fill in OPENAI_API_KEY (required)
 ```
+
+### Reference `.env.example` Specification
+
+```env
+# ==============================================================================
+# CloudServe Support Triage — Environment Configuration (.env.example)
+# ==============================================================================
+
+# ── 1. LLM API Key (Required) ──────────────────────────────────────────────────
+# OpenAI API Key (Standard required API key for OpenAI GPT models)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Default Model Name
+MODEL_NAME=gpt-4o-mini
+
+# ── 2. GuardrailsAI Governance (Optional) ─────────────────────────────────────
+# If set, GuardrailsAI hub validators (jailbreak, injection, PII, toxicity) are installed.
+# If omitted, guardrails operate in pass-through mode without failing execution.
+GUARDRAILS_API_KEY=
+
+# ── 3. Database & Storage ─────────────────────────────────────────────────────
+DATABASE_URL=sqlite:///./storage/decisions.db
+CHROMA_PATH=./storage/chroma
+EMBEDDING_MODEL=all-MiniLM-L6-v2
+
+# ── 4. Pipeline & Triage Settings ─────────────────────────────────────────────
+CONFIDENCE_THRESHOLD=80
+RETRIEVAL_TOP_K=8
+MAX_COORDINATOR_TURNS=10
+LOG_LEVEL=INFO
+
+# ── 5. Docker & Batch Execution Mode Controls ──────────────────────────────────
+# Execution mode for Docker container: 'api' (REST API only), 'batch' (One-shot batch run), or 'both'
+MODE=api
+
+# Batch processing options
+BATCH_INPUT=data/development_tickets.json
+BATCH_OUTPUT=storage/
+BATCH_CONCURRENCY=4
+# BATCH_SAMPLE=20  # Uncomment to run a quick smoke test on first 20 tickets
+
+# ── 6. Telemetry & Evaluation ───────────────────────────────────────────────────
+OTEL_SDK_DISABLED=true
+LANGSMITH_API_KEY=
+LANGSMITH_PROJECT=cloudserve-triage
+```
+
+---
+
+## Native Local Runbook (Without Docker)
+
+This runbook guides you through setting up Python, installing dependencies, launching the REST API server natively, and running one-shot batch triage jobs.
+
+### System Requirements
+- **OS**: macOS 12+, Ubuntu 20.04+, Debian 11+, or Windows 10/11 (WSL2)
+- **Python**: Python 3.11, 3.12, 3.13, or 3.14
+- **Package Manager**: `uv` (recommended) or standard `pip`
+
+### Step 1: Navigate to Workspace & Environment Setup
+
+```bash
+cd AyushYadav_Capstone_submission/04_Source_Code
+
+# Option A: Using uv (Ultra-fast, recommended)
+uv venv .venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+
+# Option B: Using standard Python venv
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### Step 2: Configure Environment File
+
+```bash
+cp .env.example .env
+# Edit .env and supply your OPENAI_API_KEY
+```
+
+### Step 3: Run the Synchronous REST API Server
+
+```bash
+# Launch FastAPI via uvicorn (listens on http://localhost:8000)
+uvicorn src.api:app --host 0.0.0.0 --port 8000 --reload
+
+# Alternatively, run via python module
+python -m src.api
+```
+
+- **Interactive API Documentation (Swagger UI)**: `http://localhost:8000/docs`
+- **Prometheus Metrics Endpoint**: `http://localhost:8001/metrics`
+- **Health Check Endpoint**: `curl http://localhost:8000/health`
+
+### Step 4: Run a One-Shot Batch Triage Job Natively
+
+Execute the batch evaluation harness over a dataset file in one shot:
+
+```bash
+# Run full 500-ticket development dataset batch triage
+python -m evaluation.harness --input data/development_tickets.json --output storage/
+
+# Run a quick 20-ticket smoke test batch triage
+python -m evaluation.harness --input data/development_tickets.json --output storage/ --sample 20
+```
+
+**Batch Run Artifacts Produced:**
+- `storage/run_<timestamp>.jsonl`: Structured per-ticket output decisions.
+- `storage/metrics_<timestamp>.json`: Aggregate volume, business, technical, and governance metrics report.
+
+---
+
+## Docker & Docker Compose Runbook (Recommended)
+
+This runbook enables running the REST API server and a one-shot batch triage job **simultaneously** using containerized microservices or a single combined container.
+
+### System Requirements
+- **Docker Engine**: 20.10.0+
+- **Docker Compose**: v2.0.0+
+
+### Step 1: Environment File Initialization
+
+```bash
+cd AyushYadav_Capstone_submission/04_Source_Code
+cp .env.example .env
+# Ensure OPENAI_API_KEY is populated in .env
+```
+
+### Step 2: One-Command Simultaneous Execution (API + One-Shot Batch)
+
+Run Docker Compose to launch both the API server and the one-shot batch triage container simultaneously:
 
 ```bash
 docker compose up --build
 ```
 
-The API is available at `http://localhost:8000`. Prometheus metrics are on port `8001`.
+**What happens under the hood:**
+1. `cloudserve-api` builds and starts on ports `8000` (FastAPI) and `8001` (Prometheus).
+2. ChromaDB embeddings (`all-MiniLM-L6-v2`) are loaded automatically without requiring outbound network downloads.
+3. `cloudserve-batch` waits for `cloudserve-api` healthcheck (`http://localhost:8000/health`) to be healthy.
+4. `cloudserve-batch` executes a complete one-shot batch triage run over `data/development_tickets.json` in parallel while the API server remains live.
+5. All SQLite decision logs and batch JSONL / metrics reports are persisted to `./storage/`.
 
-- GuardrailsAI validators are installed automatically at container start if configured.
-- The SQLite decision log is persisted in `./storage/decisions.db` via a volume mount.
-- The `all-MiniLM-L6-v2` embedding model is baked into the image at build time; no network is needed at startup.
-
-To stop: `docker compose down`.
+To stop the containers:
+```bash
+docker compose down
+```
 
 ---
 
-## Local Setup (without Docker)
+### Step 3: Standalone Docker Execution Modes
 
-**Requirements:** Python 3.11+, `uv` (recommended)
+If you prefer building and running standalone Docker containers manually:
 
-```bash
-pip install -r requirements.txt
-```
-
-Copy `.env.example` to `.env` and fill in your keys:
-
-```env
-OPENAI_API_KEY=your_key_here
-MODEL_NAME=gpt-4.1-mini
-```
-
-## Running Locally
+#### A. Build Docker Image
 
 ```bash
-uvicorn src.api:app --reload
-# or
-python -m src.api
+docker build -t cloudserve-triage:latest .
 ```
 
-The API listens on `http://localhost:8000`. Prometheus metrics are exposed on port `8001`.
+#### B. Mode 1: Run REST API Container Standalone
+
+```bash
+docker run -d \
+  --name cloudserve-api-standalone \
+  -p 8000:8000 \
+  -p 8001:8001 \
+  --env-file .env \
+  -e MODE=api \
+  -v $(pwd)/storage:/app/storage \
+  cloudserve-triage:latest
+```
+
+#### C. Mode 2: Run One-Shot Batch Processing Container Standalone
+
+```bash
+# Full 500-ticket one-shot batch run
+docker run --rm \
+  --name cloudserve-batch-run \
+  --env-file .env \
+  -e MODE=batch \
+  -v $(pwd)/storage:/app/storage \
+  cloudserve-triage:latest
+
+# 20-ticket smoke test batch run
+docker run --rm \
+  --name cloudserve-batch-smoke \
+  --env-file .env \
+  -e MODE=batch \
+  -e BATCH_SAMPLE=20 \
+  -v $(pwd)/storage:/app/storage \
+  cloudserve-triage:latest
+```
+
+#### D. Mode 3: Run API Server AND One-Shot Batch Simultaneously in Single Container
+
+```bash
+docker run -d \
+  --name cloudserve-simultaneous \
+  -p 8000:8000 \
+  -p 8001:8001 \
+  --env-file .env \
+  -e MODE=both \
+  -v $(pwd)/storage:/app/storage \
+  cloudserve-triage:latest
+```
 
 ---
 
-## Batch Evaluation Harness
+## API & Endpoints Reference
 
-Run the full pipeline unattended over a ticket file:
+### 1. `POST /tickets` — Single Ticket Triage
+
+Submit an individual support ticket for real-time classification, retrieval, and response drafting / escalation.
+
+#### Example Request (`curl`):
 
 ```bash
-python -m evaluation.harness \
-    --input data/validation_tickets.json \
-    --output evaluation/results/
+curl -X POST "http://localhost:8000/tickets" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ticket_id": "DEV-0001",
+    "channel": "chat",
+    "subject": "Build failing during dependency resolution",
+    "body": "builds that work last week are now fail during dependency resolution. we are having not change our code at all.",
+    "customer_tier": "standard",
+    "customer_id": "CUST-9921",
+    "received_at": "2026-09-19T10:00:00Z"
+  }'
 ```
 
-Produces two files in `<output>`:
+#### Example Response (HTTP 200 OK):
 
-| File | Contents |
-|---|---|
-| `run_<timestamp>.jsonl` | One JSON line per ticket (full pipeline output) |
-| `metrics_<timestamp>.json` | Aggregate report: volume, business, technical, governance |
-
----
-
-## API Reference
-
-### `POST /tickets`
-
-Submit a support ticket for triage.
-
-**Request body:**
 ```json
 {
-  "ticket_id": "string",
-  "channel": "email | chat | web_form | api | forum | docs_comment",
-  "subject": "string (optional)",
-  "body": "string",
-  "received_at": "ISO-8601 string",
-  "customer_id": "string",
-  "customer_name": "string",
-  "customer_tier": "standard | business | enterprise",
-  "customer_region": "string",
-  "language_fluency": "fluent | non_fluent (optional — skips PR-02 if provided)"
+  "ticket_id": "DEV-0001",
+  "route": "auto_respond",
+  "draft": "We see your build is failing at dependency resolution. Here are the steps to resolve: 1. Check if any package versions were updated...",
+  "escalation_reason": null,
+  "intent": "deployment_failure",
+  "urgency": "high",
+  "relevant_doc_ids": ["DOC-DEPLOY-001"],
+  "confidence": 0.88,
+  "guardrail_results": [
+    {"validator": "detect_jailbreak", "passed": true, "details": "no jailbreak detected"},
+    {"validator": "detect_prompt_injection", "passed": true, "details": "no prompt injection detected"}
+  ],
+  "decision_id": "a1b2c3d4-e5f6-7890-1234-56789abcdef0"
 }
 ```
 
-**Response:**
-```json
-{
-  "ticket_id": "string",
-  "route": "auto_respond | escalate | blocked",
-  "draft": "string or null",
-  "escalation_reason": "string or null",
-  "intent": "string or null",
-  "urgency": "string or null",
-  "relevant_doc_ids": ["string"],
-  "confidence": 0.0,
-  "guardrail_results": [{"validator": "string", "passed": true, "details": "string or null"}],
-  "decision_id": "string (UUID)"
-}
+---
+
+### 2. `POST /tickets/batch` — Batch Tickets Triage
+
+Submit a JSON array of support tickets for synchronous batch processing via HTTP REST.
+
+#### Example Request (`curl`):
+
+```bash
+curl -X POST "http://localhost:8000/tickets/batch" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "ticket_id": "DEV-0001",
+      "channel": "chat",
+      "body": "builds failing at dependency resolution",
+      "customer_tier": "standard"
+    },
+    {
+      "ticket_id": "DEV-0072",
+      "channel": "docs_comment",
+      "subject": "Invoice higher than expected",
+      "body": "Our invoice this month is $450 higher than expected.",
+      "customer_tier": "business"
+    }
+  ]'
 ```
 
-### `GET /health`
+#### Example Response (HTTP 200 OK):
 
-Returns `{"status": "ok"}`.
+Returns a JSON array of `TriageResponse` objects matching each input ticket.
 
 ---
 
-## Tests
+### 3. Service Operational Endpoints
+
+- **Health Check**: `GET http://localhost:8000/health` → `{"status": "ok"}`
+- **Prometheus Metrics**: `GET http://localhost:8001/metrics` → Standard Prometheus metrics format exposing `pipeline_latency_seconds` and `tickets_total`.
+
+---
+
+## Unit Testing & Sub-Agent Evaluation Runbook
+
+### Run Unit Tests
+
+Execute the complete pytest suite:
 
 ```bash
 pytest tests/ -v
 ```
+*(All 32 unit tests pass 100%).*
 
-All 32 unit tests pass 100%.
+### Run Specialized Sub-Agent Evaluation Harnesses
+
+```bash
+# 1. PR-01 Intent Classifier Evaluation
+python evaluation/run_langsmith_eval.py --sample 20 --experiment-name "intent-smoke"
+
+# 2. PR-02 Language Fluency Evaluation
+python evaluation/run_fluency_eval.py --sample 20 --experiment-name "fluency-smoke"
+
+# 3. PR-03 Urgency Classifier Evaluation
+python evaluation/run_urgency_eval.py --sample 20 --experiment-name "urgency-smoke"
+
+# 4. PR-04 RAG Agent Evaluation
+python evaluation/run_rag_eval.py --sample 20 --experiment-name "rag-smoke"
+
+# 5. PR-05 Response Drafter Evaluation
+python evaluation/run_response_draft_eval.py --sample 20 --experiment-name "draft-smoke"
+
+# 6. PR-00 Coordinator Agent Evaluation
+python evaluation/run_coordinator_eval.py --sample 20 --experiment-name "coord-smoke"
+```
 
 ---
 
@@ -201,14 +414,23 @@ All 32 unit tests pass 100%.
 
 ---
 
-## Environment Variables
+## Troubleshooting & FAQs
 
-| Variable | Default | Notes |
-|---|---|---|
-| `OPENAI_API_KEY` | — | Required |
-| `MODEL_NAME` | `gpt-4.1-mini` | LLM for all sub-agents |
-| `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | ChromaDB embeddings |
-| `DATABASE_URL` | `sqlite:///./storage/decisions.db` | SQLite Decision log |
-| `MAX_COORDINATOR_TURNS` | `10` | Hard cap on coordinator loop |
-| `RETRIEVAL_TOP_K` | `8` | Seed documents from semantic search |
-| `CONFIDENCE_THRESHOLD` | `80` | Logged threshold |
+### 1. Port Conflicts (`8000` or `8001` already in use)
+If port 8000 or 8001 is used by another application, modify your `.env` or pass alternate ports:
+```bash
+uvicorn src.api:app --host 0.0.0.0 --port 8080
+```
+In `docker-compose.yml`, change the host port mappings (`"8080:8000"`, `"8081:8001"`).
+
+### 2. Missing GuardrailsAI API Key Warning
+If `GUARDRAILS_API_KEY` is not set in `.env`, you will see:
+`GUARDRAILS_API_KEY not set — validators running in pass-through mode.`
+This is expected behavior. The pipeline continues to run smoothly; guardrail validation checks pass by default without making outbound calls to Guardrails AI hub servers.
+
+### 3. SQLite Storage Permissions or Stale Data
+If you modify vector indices or SQLite schema, reset the storage directory:
+```bash
+rm -rf storage/chroma storage/decisions.db
+```
+The application auto-recreates ChromaDB vector collections from `data/documentation.json` at next startup.

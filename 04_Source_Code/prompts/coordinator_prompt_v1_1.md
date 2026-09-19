@@ -3,7 +3,7 @@
 **Prompt ID:** PR-00  
 **Version:** 1.1  
 **Purpose:** Orchestrate the full support triage pipeline. The coordinator receives a raw ticket, decides which sub-agents to invoke and in what order, passes the correct inputs to each, and makes all routing decisions. No sub-agent communicates with any other — all information flows through the coordinator.  
-**Model target:** `google/gemini-3.1-flash-lite` (OpenRouter)  
+**Model target:** `gpt-4o-mini` (OpenAI)  
 **Evaluation dataset:** `development_tickets.json` (500 tickets — 311 auto_respond, 189 escalate)
 
 ---

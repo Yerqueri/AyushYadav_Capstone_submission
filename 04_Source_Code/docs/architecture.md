@@ -53,7 +53,7 @@ Pinned versions — do not upgrade without testing:
 
 ```
 python==3.11              (setup-python@v5 target in CI)
-openai>=1.0.0             (OpenRouter API — OpenAI-compatible client)
+openai>=1.0.0             (OpenAI API client)
 python-dotenv             (env loading)
 chromadb==0.3.21          (vector store — ephemeral, in-memory)
 sentence-transformers==2.2.2  (all-MiniLM-L6-v2 embeddings)
@@ -124,8 +124,8 @@ All vars are loaded via `python-dotenv` at the top of `api.py` (and in any scrip
 
 ```
 # .env.example
-OPENROUTER_API_KEY=your_key_here
-MODEL_NAME=google/gemini-3.1-flash-lite
+OPENAI_API_KEY=your_openai_api_key_here
+MODEL_NAME=gpt-4o-mini
 EMBEDDING_MODEL=all-MiniLM-L6-v2
 DATABASE_URL=sqlite:///./storage/decisions.db
 LOG_LEVEL=INFO
@@ -137,8 +137,8 @@ GUARDRAILS_API_KEY=your_guardrails_key_here
 
 | Variable | Default | Notes |
 |----------|---------|-------|
-| `OPENROUTER_API_KEY` | — | Required. Fails loudly on startup if absent |
-| `MODEL_NAME` | `google/gemini-3.1-flash-lite` | Passed to every LLM call |
+| `OPENAI_API_KEY` | — | Required. Fails loudly on startup if absent |
+| `MODEL_NAME` | `gpt-4o-mini` | Passed to every LLM call |
 | `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Used to build ChromaDB collection at startup |
 | `DATABASE_URL` | `sqlite:///./storage/decisions.db` | SQLAlchemy connection string |
 | `LOG_LEVEL` | `INFO` | Python logging level |
@@ -377,12 +377,11 @@ from openai import OpenAI
 
 def get_client() -> OpenAI:
     return OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=os.environ["OPENROUTER_API_KEY"],
+        api_key=os.environ["OPENAI_API_KEY"],
     )
 
 def call_llm(client: OpenAI, system: str, user: str, model: str = None) -> str:
-    model = model or os.getenv("MODEL_NAME", "google/gemini-3.1-flash-lite")
+    model = model or os.getenv("MODEL_NAME", "gpt-4o-mini")
     resp = client.chat.completions.create(
         model=model,
         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
@@ -711,7 +710,7 @@ def write_decision(engine, ticket_id: str, state: "PipelineState", response: "Tr
             ticket_id=ticket_id,
             stage="pipeline",
             input_summary=state.ticket.body[:500],
-            model=os.getenv("MODEL_NAME", "google/gemini-3.1-flash-lite"),
+            model=os.getenv("MODEL_NAME", "gpt-4o-mini"),
             prediction=fd.route if fd else "error",
             alternatives=json.dumps(intermediates),
             sources_used=json.dumps(response.relevant_doc_ids),
@@ -932,7 +931,7 @@ jobs:
           guardrails hub install hub://guardrails/guardrails_pii
       - run: python -m pytest tests/ -v
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GUARDRAILS_API_KEY: ${{ secrets.GUARDRAILS_API_KEY }}
 ```
 
@@ -952,7 +951,7 @@ These are binding constraints from the requirements documents. Do not work aroun
 | Coordinator output is one action per turn | PR-00 design | Never batch two agent calls in one coordinator response |
 | Sub-agents never communicate with each other | PR-00 design | All data flows through coordinator state |
 | Decision log is append-only | Governance | Never update or delete rows |
-| API key must never appear in logs or responses | Security | `os.environ["OPENROUTER_API_KEY"]` — do not log this value |
+| API key must never appear in logs or responses | Security | `os.environ["OPENAI_API_KEY"]` — do not log this value |
 | ChromaDB is ephemeral | Architecture decision | No persistence across restarts; rebuilt at startup from `documentation.json` |
 | MAX_COORDINATOR_TURNS is configurable | Operational | Read from env; default 10; escalate with `pipeline_error` reason if exceeded |
 | `language_fluency` in input bypasses PR-02 | Product decision | Coordinator receives bypass note; PR-02 is never called |

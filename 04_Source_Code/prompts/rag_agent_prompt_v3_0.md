@@ -3,7 +3,7 @@
 **Prompt ID:** PR-04  
 **Version:** 3.0  
 **Purpose:** Given a support ticket and a set of candidate documents retrieved from the knowledge base, identify which documents are genuinely relevant and assess whether the ticket can be fully answered from them. Runs after intent classification; its output feeds the response drafter.  
-**Model target:** `google/gemini-3.1-flash-lite` (OpenRouter)  
+**Model target:** `gpt-4o-mini` (OpenAI)  
 **Evaluation dataset:** `development_tickets.json` × `documentation.json` (357 answerable, 143 not-answerable; 29 docs total)
 
 ---

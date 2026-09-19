@@ -1,17 +1,71 @@
+version: '3.8'
+
 services:
+  # Service 1: Synchronous FastAPI Triage API & Prometheus Metrics Server
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cloudserve-api
     ports:
-      - "8000:8000"   # FastAPI
-      - "8001:8001"   # Prometheus metrics
+      - "8000:8000"   # FastAPI HTTP REST API
+      - "8001:8001"   # Prometheus metrics exporter
     env_file:
       - .env
+    environment:
+      - MODE=api
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
-      - ./storage:/app/storage   # persist SQLite decision log across restarts
+      - ./storage:/app/storage   # Persist SQLite decision log and vector DB across restarts
+      - ./data:/app/data          # Ticket dataset access
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
+      interval: 15s
       timeout: 10s
       retries: 3
-      start_period: 90s   # allow time for validator install + ChromaDB build
+      start_period: 30s
+
+  # Service 2: One-Shot Batch Evaluation Harness (Runs simultaneously alongside API)
+  batch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cloudserve-batch
+    env_file:
+      - .env
+    environment:
+      - MODE=batch
+      - BATCH_INPUT=${BATCH_INPUT:-data/development_tickets.json}
+      - BATCH_OUTPUT=${BATCH_OUTPUT:-storage/}
+      - BATCH_CONCURRENCY=${BATCH_CONCURRENCY:-4}
+      - BATCH_SAMPLE=${BATCH_SAMPLE:-}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./storage:/app/storage   # Persist run results JSONL & metrics JSON
+      - ./data:/app/data
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Service 3: Single-Container Simultaneous Runner (Optional standalone service)
+  both:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cloudserve-combined
+    profiles:
+      - single-container
+    ports:
+      - "8080:8000"
+      - "8081:8001"
+    env_file:
+      - .env
+    environment:
+      - MODE=both
+      - BATCH_INPUT=${BATCH_INPUT:-data/development_tickets.json}
+      - BATCH_OUTPUT=${BATCH_OUTPUT:-storage/}
+      - BATCH_CONCURRENCY=${BATCH_CONCURRENCY:-4}
+    volumes:
+      - ./storage:/app/storage
+      - ./data:/app/data

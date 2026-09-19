@@ -3,7 +3,7 @@
 **Prompt ID:** PR-01  
 **Version:** 1.1  
 **Purpose:** Classify incoming support tickets into one of 22 intent classes, flag must-not-auto-respond cases, and emit a calibrated confidence score. Urgency is handled by a separate agent.  
-**Model target:** `google/gemini-3.1-flash-lite` (OpenRouter)  
+**Model target:** `gpt-4o-mini` (OpenAI)  
 **Evaluation dataset:** `development_tickets.json` (500 tickets, prefix `DEV-`)
 
 ---

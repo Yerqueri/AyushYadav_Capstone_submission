@@ -24,7 +24,7 @@ class JailbreakValidator(BaseGuardrailValidator):
     def validate(self, text: str, cited_content: str = "") -> GuardrailResult:
         def _run():
             from guardrails_ai.detect_jailbreak import DetectJailbreak
-            val = self.registry.get_validator("detect_jailbreak", lambda: DetectJailbreak(on_fail="noop"))
+            val = self.registry.get_validator("detect_jailbreak", lambda: DetectJailbreak(on_fail="noop", use_local=True))
             res = val.validate(text)
             passed = _is_passed(res)
             return GuardrailResult(

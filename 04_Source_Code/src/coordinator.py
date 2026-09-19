@@ -112,14 +112,16 @@ def _deterministic_coordinator(state: PipelineState) -> CoordinatorOutput:
 
     intent_inv = completed.get("PR-01")
     mnr = intent_inv.output.get("must_not_auto_respond", False) if intent_inv else False
+    intent = intent_inv.output.get("intent") if intent_inv else None
 
     if mnr:
+        esc_reason = f"must_not_auto_respond:{intent}" if intent else "must_not_auto_respond"
         return CoordinatorOutput(
             next_action="final_decision",
             agent_call=None,
             final_decision=FinalDecisionSpec(
                 route="escalate",
-                escalation_reason="must_not_auto_respond",
+                escalation_reason=esc_reason,
                 draft=draft,
                 confidence=float(intent_inv.output.get("confidence", 80)),
             ),

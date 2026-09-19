@@ -119,10 +119,22 @@ def _build_metrics(results: list[dict], wall_seconds: float) -> dict:
         if r["urgency"]:
             urgency_dist[r["urgency"]] += 1
 
-    # Guardrail activations by validator
+    # Guardrail activations & escalation breakdowns
     guardrail_activations: dict[str, int] = defaultdict(int)
     pii_detections = 0
+    escalation_reasons: dict[str, int] = defaultdict(int)
+    must_not_auto_respond_reasons: dict[str, int] = defaultdict(int)
+
     for r in results:
+        if r["route"] == "escalate":
+            esc = r.get("escalation_reason") or "unspecified"
+            if esc.startswith("must_not_auto_respond"):
+                escalation_reasons["must_not_auto_respond"] += 1
+                sub_reason = esc.split(":", 1)[1] if ":" in esc else (r.get("intent") or "unspecified")
+                must_not_auto_respond_reasons[sub_reason] += 1
+            else:
+                escalation_reasons[esc] += 1
+
         for gr in r.get("guardrail_results", []):
             if not gr.get("passed", True):
                 guardrail_activations[gr["validator"]] += 1
@@ -164,6 +176,8 @@ def _build_metrics(results: list[dict], wall_seconds: float) -> dict:
             "guardrail_activations_by_validator": dict(guardrail_activations),
             "pii_detections": pii_detections,
             "pipeline_errors": errors,
+            "escalation_reasons": dict(sorted(escalation_reasons.items())),
+            "must_not_auto_respond_reasons": dict(sorted(must_not_auto_respond_reasons.items())),
         },
     }
 
@@ -251,6 +265,16 @@ def main() -> None:
     print(f"  Tickets processed   : {v['tickets_processed']}")
     print(f"  Auto-responded      : {v['auto_responded']}  ({v['auto_respond_rate']:.1%})")
     print(f"  Escalated           : {v['escalated']}  ({v['escalation_rate']:.1%})")
+    mnr_map = g.get("must_not_auto_respond_reasons", {})
+    if mnr_map:
+        mnr_total = sum(mnr_map.values())
+        print(f"    • Must Not Auto Respond : {mnr_total}")
+        for intent_name, count in mnr_map.items():
+            print(f"        - {intent_name:<20}: {count}")
+    other_esc = g.get("escalation_reasons", {})
+    for reason, count in other_esc.items():
+        if reason != "must_not_auto_respond":
+            print(f"    • {reason:<22}: {count}")
     print(f"  Blocked (guardrail) : {v['blocked_by_guardrails']}")
     print(f"  Errors              : {v['errors']}")
     print(f"{'─'*54}")

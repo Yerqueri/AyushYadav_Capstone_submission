@@ -5,7 +5,10 @@ warnings.filterwarnings("ignore", category=UserWarning, module="pydantic.*")
 warnings.filterwarnings("ignore", category=UserWarning, module="presidio_analyzer.*")
 
 import spacy
+import spacy.util
+
 _orig_spacy_load = spacy.load
+_orig_is_package = spacy.util.is_package
 
 def _spacy_load_patch(name, **kwargs):
     if name == "en_core_web_lg":
@@ -13,6 +16,7 @@ def _spacy_load_patch(name, **kwargs):
     return _orig_spacy_load(name, **kwargs)
 
 spacy.load = _spacy_load_patch
+spacy.util.is_package = lambda name: True if name == "en_core_web_lg" else _orig_is_package(name)
 
 from src.guardrails.base import BaseGuardrailValidator
 from src.guardrails.registry import GuardrailValidatorRegistry, _REGISTRY

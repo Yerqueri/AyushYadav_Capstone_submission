@@ -16,11 +16,15 @@ RUN pip install --no-cache-dir torch torchvision --index-url https://download.py
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download all Hugging Face, SpaCy, ChromaDB, and Guardrails models into image cache so zero network downloads occur at runtime
+# Copy local prebuilt HuggingFace and ChromaDB model weight caches into Docker build context
+COPY .cache_models/huggingface /root/.cache/huggingface
+COPY .cache_models/chroma /root/.cache/chroma
+
+# Initialize models from local cache to verify zero network downloading during image build
 RUN python -c "from chromadb.utils.embedding_functions import DefaultEmbeddingFunction; ef = DefaultEmbeddingFunction(); ef(['test']);"
 RUN python -c "from transformers import pipeline; pipeline('text-classification', model='martin-ha/toxic-comment-model', device='cpu');"
 RUN python -c "from guardrails_ai.detect_jailbreak import DetectJailbreak; DetectJailbreak(on_fail='noop', use_local=True);"
-RUN python -c "import spacy; orig=spacy.load; spacy.load=lambda name, **kw: orig('en_core_web_sm', **kw) if name=='en_core_web_lg' else orig(name, **kw); from guardrails_ai.guardrails_pii import GuardrailsPII; GuardrailsPII(entities=['PHONE_NUMBER'], on_fail='noop');"
+RUN python -c "import spacy, spacy.util; orig=spacy.load; spacy.load=lambda name, **kw: orig('en_core_web_sm', **kw) if name=='en_core_web_lg' else orig(name, **kw); orig_pkg=spacy.util.is_package; spacy.util.is_package=lambda name: True if name=='en_core_web_lg' else orig_pkg(name); from guardrails_ai.guardrails_pii import GuardrailsPII; GuardrailsPII(entities=['PHONE_NUMBER'], on_fail='noop');"
 
 # Copy application source code and datasets
 COPY . .

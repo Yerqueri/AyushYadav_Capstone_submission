@@ -235,33 +235,33 @@ docker run -d \
 
 #### C. Mode 2: Run One-Shot Batch Processing Container Standalone
 
-You can pass input and output paths to the Docker container via CLI flags (`--input` / `-i`, `--output` / `-o`) or environment variables (`INPUT_PATH`, `OUTPUT_PATH`):
+You can pass input dataset paths (ingress) and output directory paths (egress) to the Docker container via CLI flags (`--input` / `-i`, `--output` / `-o`) or environment variables (`INGRESS_PATH` / `INPUT_PATH`, `EGRESS_PATH` / `OUTPUT_PATH`). External host directories can be mounted directly to `/app/ingress` and `/app/egress`:
 
 ```bash
-# Option 1: Direct flag pattern (consistent with native harness CLI)
+# Option 1: Short flag pattern with mounted external ingress & egress volumes (Recommended)
 docker run --rm \
   --name cloudserve-batch-flags \
   --env-file .env \
-  -v $(pwd)/data:/app/data \
-  -v $(pwd)/storage:/app/storage \
-  cloudserve-triage:latest --input data/validation_tickets.json --output storage/results --sample 20
+  -v $(pwd)/data:/app/ingress \
+  -v $(pwd)/storage/results:/app/egress \
+  cloudserve-triage:latest -i /app/ingress/validation_tickets.json -o /app/egress --sample 20
 
-# Option 2: Short flag pattern (-i / -o)
+# Option 2: Long flag pattern (--input / --output)
 docker run --rm \
-  --name cloudserve-batch-short-flags \
+  --name cloudserve-batch-long-flags \
   --env-file .env \
-  -v $(pwd)/data:/app/data \
-  -v $(pwd)/storage:/app/storage \
-  cloudserve-triage:latest -i data/validation_tickets.json -o storage/results
+  -v $(pwd)/data:/app/ingress \
+  -v $(pwd)/storage/results:/app/egress \
+  cloudserve-triage:latest --input /app/ingress/validation_tickets.json --output /app/egress
 
-# Option 3: Environment variable pattern
+# Option 3: Environment variable pattern (INGRESS_PATH / EGRESS_PATH)
 docker run --rm \
   --name cloudserve-batch-env \
   --env-file .env \
-  -e INPUT_PATH=data/validation_tickets.json \
-  -e OUTPUT_PATH=storage/results \
-  -v $(pwd)/data:/app/data \
-  -v $(pwd)/storage:/app/storage \
+  -e INGRESS_PATH=/app/ingress/validation_tickets.json \
+  -e EGRESS_PATH=/app/egress \
+  -v $(pwd)/data:/app/ingress \
+  -v $(pwd)/storage/results:/app/egress \
   cloudserve-triage:latest batch
 ```
 

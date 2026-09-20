@@ -16,8 +16,11 @@ RUN pip install --no-cache-dir torch torchvision --index-url https://download.py
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download all-MiniLM-L6-v2 embedding model so container startup needs zero outbound model downloads
-RUN python -c "from chromadb.utils.embedding_functions import DefaultEmbeddingFunction; DefaultEmbeddingFunction()"
+# Pre-download all Hugging Face, SpaCy, ChromaDB, and Guardrails models into image cache so zero network downloads occur at runtime
+RUN python -c "from chromadb.utils.embedding_functions import DefaultEmbeddingFunction; ef = DefaultEmbeddingFunction(); ef(['test']);"
+RUN python -c "from transformers import pipeline; pipeline('text-classification', model='martin-ha/toxic-comment-model', device='cpu');"
+RUN python -c "from guardrails_ai.detect_jailbreak import DetectJailbreak; DetectJailbreak(on_fail='noop', use_local=True);"
+RUN python -c "import spacy; orig=spacy.load; spacy.load=lambda name, **kw: orig('en_core_web_sm', **kw) if name=='en_core_web_lg' else orig(name, **kw); from guardrails_ai.guardrails_pii import GuardrailsPII; GuardrailsPII(entities=['PHONE_NUMBER'], on_fail='noop');"
 
 # Copy application source code and datasets
 COPY . .

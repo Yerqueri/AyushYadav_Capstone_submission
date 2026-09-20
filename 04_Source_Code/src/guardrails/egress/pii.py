@@ -4,6 +4,16 @@ from typing import Any
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic.*")
 warnings.filterwarnings("ignore", category=UserWarning, module="presidio_analyzer.*")
 
+import spacy
+_orig_spacy_load = spacy.load
+
+def _spacy_load_patch(name, **kwargs):
+    if name == "en_core_web_lg":
+        name = "en_core_web_sm"
+    return _orig_spacy_load(name, **kwargs)
+
+spacy.load = _spacy_load_patch
+
 from src.guardrails.base import BaseGuardrailValidator
 from src.guardrails.registry import GuardrailValidatorRegistry, _REGISTRY
 from src.models import GuardrailResult

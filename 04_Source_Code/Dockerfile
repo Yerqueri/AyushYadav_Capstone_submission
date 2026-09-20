@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Install PyTorch & torchvision CPU-only first to prevent downloading CUDA binaries and version mismatch
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
 # Install Python deps before copying source so layer caching works
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -19,8 +22,8 @@ RUN python -c "from chromadb.utils.embedding_functions import DefaultEmbeddingFu
 # Copy application source code and datasets
 COPY . .
 
-# Ensure storage/ and data/ directories exist for volume mounts
-RUN mkdir -p storage data evaluation/results
+# Ensure storage/, data/, ingress/, and egress/ directories exist for volume mounts
+RUN mkdir -p storage storage/results data evaluation/results ingress egress
 
 RUN chmod +x docker-entrypoint.sh
 

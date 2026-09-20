@@ -1,27 +1,20 @@
 #!/bin/bash
 set -e
 
-# Install GuardrailsAI hub validators at container start if key is present.
-# If GUARDRAILS_API_KEY is absent, validators run in pass-through mode.
+# Configure GuardrailsAI with API Token at container start if key is present.
+# Note: All validator packages are pre-installed in the Docker image; no online hub downloading is needed.
 if [ -n "$GUARDRAILS_API_KEY" ]; then
     echo "[Entrypoint] Configuring GuardrailsAI with API Token..."
     guardrails configure --token "$GUARDRAILS_API_KEY" --disable-metrics || guardrails configure --token "$GUARDRAILS_API_KEY" || true
-    echo "[Entrypoint] Installing GuardrailsAI validators..."
-    guardrails hub install hub://guardrails/detect_jailbreak --quiet || true
-    guardrails hub install hub://guardrails/detect_prompt_injection --quiet || true
-    guardrails hub install hub://guardrails/detect_system_prompt_leakage --quiet || true
-    guardrails hub install hub://guardrails/extracted_summary_sentences_match --quiet || true
-    guardrails hub install hub://guardrails/bert_toxic --quiet || true
-    guardrails hub install hub://guardrails/guardrails_pii --quiet || true
-    echo "[Entrypoint] GuardrailsAI validators ready."
+    echo "[Entrypoint] GuardrailsAI configured."
 else
-    echo "[Entrypoint] GUARDRAILS_API_KEY not set — validators running in pass-through mode."
+    echo "[Entrypoint] GUARDRAILS_API_KEY not set — guardrails running in default local mode."
 fi
 
-# Default environment settings
+# Default environment settings for mode and ingress/egress volume paths
 EXEC_MODE="${MODE:-api}"
-INPUT_PATH="${INPUT_PATH:-${BATCH_INPUT:-${INPUT:-data/development_tickets.json}}}"
-OUTPUT_PATH="${OUTPUT_PATH:-${BATCH_OUTPUT:-${OUTPUT:-storage/results}}}"
+INPUT_PATH="${INPUT_PATH:-${INGRESS_PATH:-${BATCH_INPUT:-${INPUT:-data/development_tickets.json}}}}"
+OUTPUT_PATH="${OUTPUT_PATH:-${EGRESS_PATH:-${BATCH_OUTPUT:-${OUTPUT:-storage/results}}}}"
 CONCURRENCY_VAL="${BATCH_CONCURRENCY:-4}"
 SAMPLE_VAL="${BATCH_SAMPLE:-}"
 
@@ -38,12 +31,12 @@ while [[ $# -gt 0 ]]; do
             EXEC_MODE="$1"
             shift
             ;;
-        --input|-i)
+        --input|-i|--ingress)
             CLI_INPUT="$2"
             EXEC_MODE="batch"
             shift 2
             ;;
-        --output|-o)
+        --output|-o|--egress)
             CLI_OUTPUT="$2"
             EXEC_MODE="batch"
             shift 2
@@ -79,8 +72,9 @@ fi
 
 # Helper function to run batch triage harness
 run_batch_job() {
+    mkdir -p "$OUTPUT_PATH"
     echo "[Entrypoint] Starting batch triage run..."
-    echo "[Entrypoint] Input: ${INPUT_PATH} | Output: ${OUTPUT_PATH} | Concurrency: ${CONCURRENCY_VAL}"
+    echo "[Entrypoint] Ingress (Input): ${INPUT_PATH} | Egress (Output): ${OUTPUT_PATH} | Concurrency: ${CONCURRENCY_VAL}"
     
     CMD="python -m evaluation.harness --input ${INPUT_PATH} --output ${OUTPUT_PATH} --concurrency ${CONCURRENCY_VAL}"
     if [ -n "$SAMPLE_VAL" ]; then

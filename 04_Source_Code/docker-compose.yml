@@ -36,14 +36,16 @@ services:
       - .env
     environment:
       - MODE=batch
-      - INPUT_PATH=${INPUT_PATH:-${BATCH_INPUT:-data/development_tickets.json}}
-      - OUTPUT_PATH=${OUTPUT_PATH:-${BATCH_OUTPUT:-storage/results}}
+      - INPUT_PATH=${INPUT_PATH:-${INGRESS_PATH:-data/development_tickets.json}}
+      - OUTPUT_PATH=${OUTPUT_PATH:-${EGRESS_PATH:-storage/results}}
       - BATCH_CONCURRENCY=${BATCH_CONCURRENCY:-4}
       - BATCH_SAMPLE=${BATCH_SAMPLE:-}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
       - ./storage:/app/storage   # Persist run results JSONL & metrics JSON
       - ./data:/app/data
+      - ${HOST_INGRESS_PATH:-./data}:/app/ingress
+      - ${HOST_EGRESS_PATH:-./storage/results}:/app/egress
     depends_on:
       api:
         condition: service_healthy
@@ -63,9 +65,11 @@ services:
       - .env
     environment:
       - MODE=both
-      - INPUT_PATH=${INPUT_PATH:-${BATCH_INPUT:-data/development_tickets.json}}
-      - OUTPUT_PATH=${OUTPUT_PATH:-${BATCH_OUTPUT:-storage/results}}
+      - INPUT_PATH=${INPUT_PATH:-${INGRESS_PATH:-data/development_tickets.json}}
+      - OUTPUT_PATH=${OUTPUT_PATH:-${EGRESS_PATH:-storage/results}}
       - BATCH_CONCURRENCY=${BATCH_CONCURRENCY:-4}
     volumes:
       - ./storage:/app/storage
       - ./data:/app/data
+      - ${HOST_INGRESS_PATH:-./data}:/app/ingress
+      - ${HOST_EGRESS_PATH:-./storage/results}:/app/egress

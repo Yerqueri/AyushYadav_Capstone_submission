@@ -11,7 +11,10 @@ else
     echo "[Entrypoint] GUARDRAILS_API_KEY not set — guardrails running in default local mode."
 fi
 
-# Default environment settings for mode and ingress/egress volume paths
+# Export environment settings to prevent telemetry errors and process deadlock warnings
+export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
+export ANONYMIZED_TELEMETRY="${ANONYMIZED_TELEMETRY:-False}"
+
 EXEC_MODE="${MODE:-api}"
 INPUT_PATH="${INPUT_PATH:-${INGRESS_PATH:-${BATCH_INPUT:-${INPUT:-data/development_tickets.json}}}}"
 OUTPUT_PATH="${OUTPUT_PATH:-${EGRESS_PATH:-${BATCH_OUTPUT:-${OUTPUT:-storage/results}}}}"

@@ -1,5 +1,8 @@
-"""PII detection guardrail validator."""
+import warnings
 from typing import Any
+
+warnings.filterwarnings("ignore", category=UserWarning, module="pydantic.*")
+warnings.filterwarnings("ignore", category=UserWarning, module="presidio_analyzer.*")
 
 from src.guardrails.base import BaseGuardrailValidator
 from src.guardrails.registry import GuardrailValidatorRegistry, _REGISTRY

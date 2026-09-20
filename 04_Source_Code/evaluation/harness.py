@@ -14,11 +14,22 @@ recoverable.
 """
 from __future__ import annotations
 
+import os
+import sys
+import warnings
+
+# Suppress known non-critical third-party warnings and environment deadlock cues
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
+
+warnings.filterwarnings("ignore", category=UserWarning, module="pydantic.*")
+warnings.filterwarnings("ignore", category=UserWarning, module="presidio_analyzer.*")
+warnings.filterwarnings("ignore", category=UserWarning, module="transformers.*")
+warnings.filterwarnings("ignore", category=FutureWarning, module="torch.*")
+
 import argparse
 import json
 import logging
-import os
-import sys
 import threading
 import time
 from collections import defaultdict

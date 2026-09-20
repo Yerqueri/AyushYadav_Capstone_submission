@@ -37,8 +37,16 @@ class SystemPromptLeakageValidator(BaseGuardrailValidator):
                 "detect_system_prompt_leakage",
                 lambda: DetectSystemPromptLeakage(system_prompt=_PIPELINE_SYSTEM_PROMPT, on_fail="noop"),
             )
-            res = val.validate(text)
-            passed = _is_passed(res)
+            try:
+                res = val.validate(text)
+                passed = _is_passed(res)
+            except TypeError as exc:
+                if "error_message" in str(exc) or "errorMessage" in str(exc):
+                    # FailResult in guardrails-ai passed errorMessage=... triggering TypeError on leakage detection
+                    passed = False
+                else:
+                    raise
+
             return GuardrailResult(
                 validator=self.name,
                 passed=passed,

@@ -6,6 +6,8 @@ from typing import Any
 import chromadb
 from chromadb.utils import embedding_functions
 
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
+
 _DATA_PATH = Path(__file__).parent.parent / "data" / "documentation.json"
 
 
@@ -26,7 +28,7 @@ class DocumentRetriever:
     def _get_collection(self) -> Any:
         if self._collection is None:
             docs = self._load_docs()
-            client = chromadb.EphemeralClient()
+            client = chromadb.EphemeralClient(settings=chromadb.config.Settings(anonymized_telemetry=False))
             ef = embedding_functions.DefaultEmbeddingFunction()
             col = client.create_collection(
                 name="cloudserve_docs",
